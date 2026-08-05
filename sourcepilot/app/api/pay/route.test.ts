@@ -151,6 +151,19 @@ describe("evaluatePayment with the real Anvil registry", () => {
     expect((ctx.rain as MockRainAdapterImpl).calls).toHaveLength(0);
   });
 
+  it("lets an empty payee value reach Solidity and preserves zero Rain on rejection", async () => {
+    const result = await evaluatePayment(request({ payeeRef: "" }), ctx);
+    expect(result).toMatchObject({ outcome: "blocked", layer: "onchain", reason: "PayeeOutOfScope", rainCalled: false });
+    expect((ctx.rain as MockRainAdapterImpl).calls).toHaveLength(0);
+  });
+
+  it("lets an approved over-ceiling amount reach Solidity and preserves zero Rain on rejection", async () => {
+    const { approval, approvalSig } = await signedApproval(200_000);
+    const result = await evaluatePayment(request({ amountMinor: 200_000, stage: "deposit", approvalSig, approvalNonce: approval.nonce }), ctx);
+    expect(result).toMatchObject({ outcome: "blocked", layer: "onchain", reason: "ExceedsMaxTotal", rainCalled: false });
+    expect((ctx.rain as MockRainAdapterImpl).calls).toHaveLength(0);
+  });
+
   it.each(["MISSING_REQUIRED_FIELD", "LEAD_TIME_OVER", "SPEC_MATCH_UNDER"] as const)("blocks permitted %s sourcing failure off-chain", async (code) => {
     ctx.assessment.hardFailures = [{ code, message: code, observed: "bad", limit: "good", ...(code === "MISSING_REQUIRED_FIELD" ? { field: "shipping" as const } : {}) }];
     const result = await evaluatePayment(request(), ctx);

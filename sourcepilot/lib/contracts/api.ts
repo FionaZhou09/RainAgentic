@@ -114,7 +114,7 @@ export async function evaluatePayment(req: PayRequest, ctx: PayContext): Promise
   // 2. Exactly the three permitted off-chain check classes.
   const sourcingFailure = ctx.assessment.hardFailures.find((f) =>
     f.code === "MISSING_REQUIRED_FIELD" || f.code === "LEAD_TIME_OVER" || f.code === "SPEC_MATCH_UNDER");
-  if (!req.purchaseRequestId || !req.supplierId || !req.payeeRef || !Number.isInteger(req.amountMinor))
+  if (!req.purchaseRequestId || !req.supplierId)
     return cache(ctx, req, makeBlocked(ctx, req, paymentId, "offchain", "MISSING_REQUIRED_FIELD", "Payment request is missing a required field."));
   if (sourcingFailure)
     return cache(ctx, req, makeBlocked(ctx, req, paymentId, "offchain", sourcingFailure.code, sourcingFailure.message));
