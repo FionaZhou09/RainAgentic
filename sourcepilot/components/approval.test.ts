@@ -98,6 +98,17 @@ describe("approval UI logic", () => {
     expect(model.chainEvidence).toMatchObject({ label: "monadTxHash", txHash: response.transactionHash });
   });
 
+  it.each(["Environment not configured", "Unsupported chain (1)"] as const)(
+    "uses the neutral transactionHash label for %s",
+    (environment) => {
+      const response = {
+        outcome: "autonomous", paymentId: "pay", rainPaymentId: "rain", transactionHash: hash("8"),
+        explorerUrl: "", remainingMinor: "100", events: [],
+      } as Extract<PayResponse, { outcome: "autonomous" }>;
+      expect(buildApprovalModel(response, summary, environment).chainEvidence?.label).toBe("transactionHash");
+    },
+  );
+
   it("distinguishes neutral off-chain advice from on-chain rejection with zero Rain", () => {
     const blocked: Extract<PayResponse, { outcome: "blocked" }> = {
       outcome: "blocked", paymentId: "pay_blocked", layer: "onchain", reason: "PayeeOutOfScope",

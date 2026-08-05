@@ -24,7 +24,7 @@ export interface ApprovalModel {
   message: string;
   approvalPayload?: SerializedApproval;
   signedFields?: ReadonlyArray<{ label: string; value: string }>;
-  chainEvidence?: { label: "localTxHash" | "monadTxHash"; txHash: Hex; explorerUrl: string; remainingMinor: string };
+  chainEvidence?: { label: "localTxHash" | "monadTxHash" | "transactionHash"; txHash: Hex; explorerUrl: string; remainingMinor: string };
   rainPaymentId?: string;
   advisory: typeof DEMO_COPY.landedReferenceLabel;
   displayNumericScore: false;
@@ -57,9 +57,15 @@ export function buildApprovalModel(
   return { environment, mandate, response, stateTone: "positive",
     layerLabel: response.outcome === "approved" ? "Founder-approved payment" : "Autonomous payment",
     message: response.outcome === "approved" ? "Approval verified and payment authorized." : "Payment authorized within the autonomous threshold.",
-    chainEvidence: { label: environment === "Local Anvil" ? "localTxHash" : "monadTxHash",
+    chainEvidence: { label: transactionLabel(environment),
       txHash: response.transactionHash, explorerUrl: response.explorerUrl, remainingMinor: response.remainingMinor },
     rainPaymentId: response.rainPaymentId, advisory: DEMO_COPY.landedReferenceLabel, displayNumericScore: false, zeroEffects: [] };
+}
+
+function transactionLabel(environment: EnvironmentLabel): "localTxHash" | "monadTxHash" | "transactionHash" {
+  if (environment === "Local Anvil") return "localTxHash";
+  if (environment === "Monad Testnet") return "monadTxHash";
+  return "transactionHash";
 }
 
 export function buildApprovalFollowUp(
