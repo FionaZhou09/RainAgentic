@@ -24,7 +24,7 @@ export interface ApprovalModel {
   message: string;
   approvalPayload?: SerializedApproval;
   signedFields?: ReadonlyArray<{ label: string; value: string }>;
-  chainEvidence?: { txHash: Hex; explorerUrl: string; remainingMinor: string };
+  chainEvidence?: { label: "localTxHash" | "monadTxHash"; txHash: Hex; explorerUrl: string; remainingMinor: string };
   rainPaymentId?: string;
   advisory: typeof DEMO_COPY.landedReferenceLabel;
   displayNumericScore: false;
@@ -57,7 +57,8 @@ export function buildApprovalModel(
   return { environment, mandate, response, stateTone: "positive",
     layerLabel: response.outcome === "approved" ? "Founder-approved payment" : "Autonomous payment",
     message: response.outcome === "approved" ? "Approval verified and payment authorized." : "Payment authorized within the autonomous threshold.",
-    chainEvidence: { txHash: response.monadTxHash, explorerUrl: response.explorerUrl, remainingMinor: response.remainingMinor },
+    chainEvidence: { label: environment === "Local Anvil" ? "localTxHash" : "monadTxHash",
+      txHash: response.transactionHash, explorerUrl: response.explorerUrl, remainingMinor: response.remainingMinor },
     rainPaymentId: response.rainPaymentId, advisory: DEMO_COPY.landedReferenceLabel, displayNumericScore: false, zeroEffects: [] };
 }
 

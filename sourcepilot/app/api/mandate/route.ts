@@ -41,7 +41,7 @@ function createMandateHandler({ registry, environment, events }: MandateRouteDep
     const created = await registry.create(mandate, input.signature);
     const response: MandateResponse = {
       mandateHash: created.mandateHash,
-      monadTxHash: created.txHash,
+      transactionHash: created.txHash,
       explorerUrl: registry.explorerTx(created.txHash),
       payeeScope: scope.scope,
       payeePreimage: scope.preimage,

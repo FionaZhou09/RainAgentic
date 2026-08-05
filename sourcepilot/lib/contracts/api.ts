@@ -36,7 +36,7 @@ export interface MandateRequest {
 
 export interface MandateResponse {
   mandateHash: Bytes32;
-  monadTxHash: Hex;
+  transactionHash: Hex;
   explorerUrl: string;
   payeeScope: Bytes32;
   payeePreimage: string;
@@ -64,14 +64,14 @@ export interface PayRequest {
 
 export type PayResponse =
   | { outcome: "autonomous"; paymentId: string; rainPaymentId: string;
-      monadTxHash: Hex; explorerUrl: string; remainingMinor: string; events: EventRecord[] }
+      transactionHash: Hex; explorerUrl: string; remainingMinor: string; events: EventRecord[] }
   | { outcome: "pending_approval"; paymentId: string; reason: string;
       approvalPayload: SerializedApproval; chainCalled: false; rainCalled: false; events: EventRecord[] }
   | { outcome: "approved"; paymentId: string; rainPaymentId: string;
-      monadTxHash: Hex; explorerUrl: string; remainingMinor: string; approver: Address; events: EventRecord[] }
+      transactionHash: Hex; explorerUrl: string; remainingMinor: string; approver: Address; events: EventRecord[] }
   | { outcome: "blocked"; paymentId: string; layer: "offchain" | "onchain";
       reason: RevertReason | PolicyFailureCode; message: string;
-      monadTxHash: Hex | null; rainCalled: false; events: EventRecord[] };
+      transactionHash: Hex | null; rainCalled: false; events: EventRecord[] };
 
 export interface PayContext {
   purchaseRequest: PurchaseRequest;
@@ -170,7 +170,7 @@ export async function evaluatePayment(req: PayRequest, ctx: PayContext): Promise
 
   // 8. Persist success and cache the exact response object.
   emit(ctx, req, "rain_instruction_created", "system", { paymentId, rainPaymentId: rain.paymentId, status: rain.status });
-  const common = { paymentId, rainPaymentId: rain.paymentId, monadTxHash: recorded.txHash,
+  const common = { paymentId, rainPaymentId: rain.paymentId, transactionHash: recorded.txHash,
     explorerUrl: ctx.registry.explorerTx(recorded.txHash), remainingMinor: recorded.remainingMinor.toString(), events: ctx.events.read(req.purchaseRequestId) };
   return cache(ctx, req, approver ? { outcome: "approved", ...common, approver } : { outcome: "autonomous", ...common });
 }
@@ -182,9 +182,9 @@ function cache(ctx: PayContext, req: PayRequest, response: PayResponse): PayResp
   ctx.attemptCache.set(req.idempotencyKey, response); return response;
 }
 function makeBlocked(ctx: PayContext, req: PayRequest, paymentId: string, layer: "offchain" | "onchain",
-  reason: RevertReason | PolicyFailureCode, message: string, monadTxHash: Hex | null = null): PayResponse {
+  reason: RevertReason | PolicyFailureCode, message: string, transactionHash: Hex | null = null): PayResponse {
   emit(ctx, req, layer === "onchain" ? "chain_rejected" : "precheck_failed", "system", { paymentId, reason });
-  return { outcome: "blocked", paymentId, layer, reason, message, monadTxHash, rainCalled: false, events: ctx.events.read(req.purchaseRequestId) };
+  return { outcome: "blocked", paymentId, layer, reason, message, transactionHash, rainCalled: false, events: ctx.events.read(req.purchaseRequestId) };
 }
 function randomNonce(): Bytes32 { return `0x${crypto.randomUUID().replaceAll("-", "").padEnd(64, "0")}`; }
 

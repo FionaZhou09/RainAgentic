@@ -60,6 +60,8 @@ describe("cold-start real-Anvil demo harness", () => {
 
     const revoked = await harness.runRevocationCloser();
     expect(revoked).toMatchObject({ outcome: "blocked", reason: "Revoked", rainCalls: 0, mandateHash: arc.mandateHash });
+    expect(revoked).toHaveProperty("transactionHash");
+    expect(revoked).not.toHaveProperty("monadTxHash");
     expect(arc.flatMap((beat) => beat.records).every((record) => record.mandateHash === arc.mandateHash)).toBe(true);
   }, 30_000);
 
@@ -91,6 +93,8 @@ describe("cold-start real-Anvil demo harness", () => {
     const records = arc.flatMap((beat) => beat.records) as HarnessRecord[];
     expect(records.length).toBeGreaterThan(0);
     expect(records.every((record) => record.environment === "Local Anvil" && record.chainId === 31337)).toBe(true);
+    expect(records.filter((record) => record.outcome === "autonomous" || record.outcome === "approved")
+      .every((record) => record.transactionHash?.startsWith("0x"))).toBe(true);
   }, 30_000);
 
   it("cleans up the child Anvil process", async () => {

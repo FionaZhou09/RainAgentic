@@ -8,6 +8,23 @@ const local = (content: string, path = "sourcepilot/app/page.tsx"): ClaimInput =
 });
 
 describe("chain-claim verifier mutations", () => {
+  it("inspects actual configured route response objects under 31337", () => {
+    const input = {
+      ...local("safe"),
+      runtimeResponses: [
+        { route: "/api/mandate", body: { monadTxHash: `0x${"a".repeat(64)}` } },
+        { route: "/api/pay", body: { transactionHash: `0x${"b".repeat(64)}` } },
+      ],
+    };
+    expect(() => verifyChainClaims(input as ClaimInput)).toThrow(/runtime|Monad|identifier/i);
+  });
+
+  it("accepts truthful runtime transaction keys for both configured environments", () => {
+    const localInput = { ...local("safe"), runtimeResponses: [{ route: "/api/pay", body: { transactionHash: `0x${"a".repeat(64)}` } }] };
+    expect(() => verifyChainClaims(localInput as ClaimInput)).not.toThrow();
+    expect(() => verifyChainClaims({ chainId: 10143, registryAddress: "0x1111111111111111111111111111111111111111", sources: [],
+      runtimeResponses: [{ route: "/api/mandate", body: { transactionHash: `0x${"b".repeat(64)}` } }] } as ClaimInput)).not.toThrow();
+  });
   it.each([
     "deployed on Monad",
     "Monad transaction",

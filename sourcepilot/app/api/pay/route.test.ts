@@ -12,6 +12,7 @@ import { MockRainAdapterImpl } from "@/lib/rain/mock";
 import { newAttemptKey } from "@/lib/rain/port";
 import { evaluatePayment, type PayContext, type PayRequest } from "@/lib/contracts/api";
 import { POST } from "./route";
+import { verifyChainClaims } from "../../../../scripts/verify-chain-claims";
 
 type Artifact = { abi: readonly unknown[]; bytecode: { object: Hex } };
 const contractsDirectory = resolve(process.cwd(), "contracts");
@@ -77,6 +78,9 @@ describe("evaluatePayment with the real Anvil registry", () => {
   it("executes autonomous simulate -> record -> Rain and decrements the ceiling", async () => {
     const result = await evaluatePayment(request(), ctx);
     expect(result).toMatchObject({ outcome: "autonomous", remainingMinor: "166000" });
+    expect(result).toHaveProperty("transactionHash");
+    expect(result).not.toHaveProperty("monadTxHash");
+    expect(result).not.toHaveProperty("monadTransaction");
     expect(await ctx.registry.remaining(ctx.mandateHash)).toBe(166_000n);
     expect(ctx.rain).toMatchObject({ calls: [expect.objectContaining({ method: "createPaymentInstruction" })] });
   });
@@ -95,7 +99,12 @@ describe("evaluatePayment with the real Anvil registry", () => {
   it("POST delegates to the exported evaluator", async () => {
     const response = await POST.withDependencies(ctx)(new Request("http://localhost/api/pay", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(request()) }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ outcome: "autonomous", remainingMinor: "166000" });
+    const body = await response.json();
+    expect(body).toMatchObject({ outcome: "autonomous", remainingMinor: "166000", transactionHash: expect.stringMatching(/^0x[0-9a-f]{64}$/) });
+    expect(body).not.toHaveProperty("monadTxHash");
+    expect(body).not.toHaveProperty("monadTransaction");
+    expect(() => verifyChainClaims({ chainId: 31337, registryAddress: ctx.mandateDomain.verifyingContract, sources: [],
+      runtimeResponses: [{ route: "/api/pay", body }] })).not.toThrow();
   });
 
   it("generates a fresh pending nonce instead of accepting a caller-supplied one", async () => {

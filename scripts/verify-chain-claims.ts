@@ -8,6 +8,7 @@ export type ClaimSource = { path: string; content: string };
 export type ClaimInput = {
   chainId: number; registryAddress: string; sources: ClaimSource[];
   approvalOnchainVerify?: boolean; shippedEnforcementClaim?: string;
+  runtimeResponses?: Array<{ route: "/api/mandate" | "/api/pay"; body: unknown }>;
 };
 
 const HASH = /0x[0-9a-fA-F]{64}/;
@@ -30,6 +31,13 @@ export function verifyChainClaims(input: ClaimInput): void {
     ? ENFORCEMENT_CLAIM.approvalVerified : ENFORCEMENT_CLAIM.callerAsserted;
   if ((input.shippedEnforcementClaim ?? DEMO_COPY.enforcementClaim) !== expected) fail("DEMO_COPY", "enforcement claim does not match APPROVAL_ONCHAIN_VERIFY");
   if (input.chainId !== 31337 && input.chainId !== 10143) fail("CHAIN_ID", `unsupported chain ${input.chainId}`);
+
+  for (const response of input.runtimeResponses ?? []) {
+    const keys = collectKeys(response.body);
+    if (keys.has("monadTxHash") || keys.has("monadTransaction")) {
+      fail(`runtime ${response.route}`, `Monad-specific runtime identifier is forbidden on configured chain ${input.chainId}`);
+    }
+  }
 
   for (const source of input.sources) {
     let content = stripComments(source.content);
@@ -70,6 +78,12 @@ export function verifyChainClaims(input: ClaimInput): void {
   }
 }
 
+function collectKeys(value: unknown, keys = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) for (const item of value) collectKeys(item, keys);
+  else if (value && typeof value === "object") for (const [key, item] of Object.entries(value)) { keys.add(key); collectKeys(item, keys); }
+  return keys;
+}
+
 async function collect(directory: string): Promise<ClaimSource[]> {
   const output: ClaimSource[] = [];
   try {
@@ -95,9 +109,12 @@ async function main() {
   ])).flat();
   if (chainId === 31337) {
     const { runDemo } = await import("./harness");
-    sources.push({ path: "scripts/harness-output", content: JSON.stringify(await runDemo(), (_, value) => typeof value === "bigint" ? value.toString() : value) });
+    const runtime = await runDemo();
+    sources.push({ path: "scripts/harness-output", content: JSON.stringify(runtime, (_, value) => typeof value === "bigint" ? value.toString() : value) });
+    verifyChainClaims({ chainId, registryAddress, sources, runtimeResponses: [{ route: "/api/pay", body: runtime }] });
+  } else {
+    verifyChainClaims({ chainId, registryAddress, sources });
   }
-  verifyChainClaims({ chainId, registryAddress, sources });
   console.log(`Chain claims verified for ${chainId === 31337 ? "Local Anvil" : "Monad Testnet"} across ${sources.length} source/evidence records.`);
 }
 

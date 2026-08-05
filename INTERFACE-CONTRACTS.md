@@ -20,6 +20,7 @@
 | 9 | A2, boss-approved 2026-08-05 | Canonical mandate domain, hash, sign, and recovery helpers now require explicit `chainId` and `verifyingContract`. No implicit Monad default; RegistryClient uses the same helper. |
 | 10 | A3, boss-approved 2026-08-05 | Approval helpers use the same explicit domain; `SerializedApproval` canonically carries all six fields; `PayRequest.approvalNonce` propagates the signed nonce unchanged. |
 | 11 | A4 Option B, boss-approved 2026-08-05 | The purchase flow and D3 ceiling proof use one mandate. Revocation is the final irreversible closer, exposed separately as `runRevocationCloser()`. |
+| 12 | A5, boss-approved 2026-08-05 | Canonical mandate/payment responses expose environment-neutral `transactionHash`; presentation labels it `localTxHash` only on 31337 and `monadTxHash` only on 10143. |
 
 ---
 
@@ -535,7 +536,7 @@ export interface MandateRequest {
 export interface MandateResponse {
   /** D0: the value the CONTRACT returned, not one we computed and sent. */
   mandateHash: Bytes32;
-  monadTxHash: Hex; explorerUrl: string;
+  transactionHash: Hex; explorerUrl: string;
   payeeScope: Bytes32; payeePreimage: string; recoveredSigner: Address;
   constraints: { maxTotalMinor: string; autonomousMaxMinor: string; maxDepositBps: number;
                  validAfter: number; validUntil: number };
@@ -554,14 +555,14 @@ export interface PayRequest {
 
 export type PayResponse =
   | { outcome: "autonomous"; paymentId: string; rainPaymentId: string;
-      monadTxHash: Hex; explorerUrl: string; remainingMinor: string; events: EventRecord[] }
+      transactionHash: Hex; explorerUrl: string; remainingMinor: string; events: EventRecord[] }
   | { outcome: "pending_approval"; paymentId: string; reason: string;
       approvalPayload: SerializedApproval; chainCalled: false; rainCalled: false; events: EventRecord[] }
   | { outcome: "approved"; paymentId: string; rainPaymentId: string;
-      monadTxHash: Hex; explorerUrl: string; remainingMinor: string; approver: Address; events: EventRecord[] }
+      transactionHash: Hex; explorerUrl: string; remainingMinor: string; approver: Address; events: EventRecord[] }
   | { outcome: "blocked"; paymentId: string; layer: "offchain" | "onchain";
       reason: RevertReason | PolicyFailureCode; message: string;
-      monadTxHash: Hex | null; rainCalled: false; events: EventRecord[] };
+      transactionHash: Hex | null; rainCalled: false; events: EventRecord[] };
 
 /**
  * THE ORDER IS THE CONTRACT (D7 — this governs; PRD §9's ordering is dead).

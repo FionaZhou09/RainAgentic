@@ -77,21 +77,31 @@ describe("approval UI logic", () => {
     for (const outcome of ["approved", "autonomous"] as const) {
       const response = {
         outcome, paymentId: `pay_${outcome}`, rainPaymentId: `rain_${outcome}`,
-        monadTxHash: hash("4"), explorerUrl: "http://localhost:8545/tx/0x44", remainingMinor: "18100", events: [],
+        transactionHash: hash("4"), explorerUrl: "http://localhost:8545/tx/0x44", remainingMinor: "18100", events: [],
         ...(outcome === "approved" ? { approver: `0x${"5".repeat(40)}` as const } : {}),
       } as Extract<PayResponse, { outcome: typeof outcome }>;
       const model = buildApprovalModel(response, summary, "Local Anvil");
-      expect(model.chainEvidence?.txHash).toBe(response.monadTxHash);
+      expect(model.chainEvidence?.txHash).toBe(response.transactionHash);
+      expect(model.chainEvidence?.label).toBe("localTxHash");
       expect(model.rainPaymentId).toBe(response.rainPaymentId);
       expect(model.chainEvidence?.remainingMinor).toBe("18100");
       expect(model.displayNumericScore).toBe(false);
     }
   });
 
+  it("labels canonical transaction evidence as Monad-only on Monad Testnet", () => {
+    const response = {
+      outcome: "autonomous", paymentId: "pay", rainPaymentId: "rain", transactionHash: hash("9"),
+      explorerUrl: "https://testnet.monadvision.com/tx/0x99", remainingMinor: "100", events: [],
+    } as Extract<PayResponse, { outcome: "autonomous" }>;
+    const model = buildApprovalModel(response, summary, "Monad Testnet");
+    expect(model.chainEvidence).toMatchObject({ label: "monadTxHash", txHash: response.transactionHash });
+  });
+
   it("distinguishes neutral off-chain advice from on-chain rejection with zero Rain", () => {
     const blocked: Extract<PayResponse, { outcome: "blocked" }> = {
       outcome: "blocked", paymentId: "pay_blocked", layer: "onchain", reason: "PayeeOutOfScope",
-      message: REVERT_COPY.PayeeOutOfScope, monadTxHash: null, rainCalled: false, events: [],
+      message: REVERT_COPY.PayeeOutOfScope, transactionHash: null, rainCalled: false, events: [],
     };
     const model = buildApprovalModel(blocked, summary, "Local Anvil");
     expect(model.message).toBe(REVERT_COPY.PayeeOutOfScope);

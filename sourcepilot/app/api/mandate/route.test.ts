@@ -10,6 +10,7 @@ import type { ChainEnvironment } from "@/lib/chain/config";
 import { createEventStore } from "@/lib/events";
 import { startAnvil, type RunningAnvil } from "../../../../scripts/start-anvil";
 import { POST } from "./route";
+import { verifyChainClaims } from "../../../../scripts/verify-chain-claims";
 
 type Artifact = { abi: readonly unknown[]; bytecode: { object: Hex } };
 
@@ -54,8 +55,12 @@ describe("POST /api/mandate", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.mandateHash).toMatch(/^0x[0-9a-f]{64}$/);
-    expect(body.monadTxHash).toMatch(/^0x[0-9a-f]{64}$/);
-    expect(body.explorerUrl).toBe(registry.explorerTx(body.monadTxHash));
+    expect(body.transactionHash).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(body.explorerUrl).toBe(registry.explorerTx(body.transactionHash));
+    expect(body).not.toHaveProperty("monadTxHash");
+    expect(body).not.toHaveProperty("monadTransaction");
+    expect(() => verifyChainClaims({ chainId: 31337, registryAddress: environment.registryAddress, sources: [],
+      runtimeResponses: [{ route: "/api/mandate", body }] })).not.toThrow();
     expect(body.payeeScope).toBe(mandate.payeeScope);
     expect(body.payeePreimage).toBe(computePayeeScope(payeeRefs).preimage);
     expect(body.recoveredSigner.toLowerCase()).toBe(mandate.principal.toLowerCase());

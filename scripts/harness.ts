@@ -23,7 +23,7 @@ const REVOKE_ABI = parseAbi(["function revoke(bytes32 mandateHash)"]);
 export type HarnessRecord = {
   environment: "Local Anvil"; chainId: 31337; outcome: PayResponse["outcome"];
   amountMinor: number; attemptKey: AttemptKey; approvalNonce?: Hex; reason?: string;
-  remainingMinor?: string; rainCalls: number; copy: string; mandateHash: Hex;
+  transactionHash?: Hex; remainingMinor?: string; rainCalls: number; copy: string; mandateHash: Hex;
 };
 export type HarnessBeat = { beat: "autonomous_sample" | "escalation" | "changed_payee"; records: HarnessRecord[] };
 export type LockedArc = HarnessBeat[] & { spentMinor: bigint; registryAddress: Address; mandateHash: Hex };
@@ -45,6 +45,7 @@ function record(track: Track, response: PayResponse, amountMinor: number, key: A
   const recordedNonce = response.outcome === "pending_approval" ? response.approvalPayload.nonce : approvalNonce;
   return { environment: "Local Anvil", chainId: 31337, outcome: response.outcome, amountMinor, attemptKey: key,
     approvalNonce: recordedNonce, reason: response.outcome === "blocked" ? response.reason : undefined,
+    transactionHash: "transactionHash" in response ? response.transactionHash ?? undefined : undefined,
     remainingMinor: "remainingMinor" in response ? response.remainingMinor : undefined,
     rainCalls: track.rain.calls.length - rainBefore, copy: DEMO_COPY.enforcementClaim, mandateHash: track.mandateHash };
 }
@@ -58,7 +59,7 @@ export async function createDemoHarness(): Promise<DemoHarness> {
     const chain = defineChain({ id: 31337, name: "Local Anvil", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: [anvil.rpcUrl] } } });
     const transport = http(anvil.rpcUrl);
     const publicClient = createPublicClient({ chain, transport });
-    const unlocked = await publicClient.request({ method: "eth_accounts" }) as Address[];
+    const unlocked = await createWalletClient({ chain, transport }).getAddresses();
     const [principal, agent] = unlocked;
     const deployerWallet = createWalletClient({ account: principal, chain, transport });
     const principalWallet = deployerWallet;
@@ -170,17 +171,8 @@ export async function runDemo() {
     const evidence = { environment: "Local Anvil" as const, chainId: 31337 as const, copy: DEMO_COPY,
       mandateHash: arc.mandateHash, spentMinor: arc.spentMinor, arc, second, third, revocation,
       revokeCommand: harness.printRevokeCommand() };
-    return sanitizePresentation(evidence, 31337);
+    return evidence;
   } finally { await harness.stop(); }
-}
-
-function sanitizePresentation(value: unknown, chainId: 31337 | 10143): unknown {
-  if (Array.isArray(value)) return value.map((item) => sanitizePresentation(item, chainId));
-  if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [
-    chainId === 31337 && key === "monadTxHash" ? "localTxHash" : key,
-    sanitizePresentation(item, chainId),
-  ]));
 }
 
 async function main() { console.log(JSON.stringify(await runDemo(), (_, value) => typeof value === "bigint" ? value.toString() : value, 2)); }
