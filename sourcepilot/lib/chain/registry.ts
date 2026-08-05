@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * DECLARATION SURFACE ONLY — NO IMPLEMENTATION IN THIS FILE.
+ * FROZEN DECLARATION SURFACE WITH VIEM IMPLEMENTATION BELOW.
  * ============================================================================
  *
  * This file exists on Tuesday because WP2 and WP4 import `Stage`, `RevertReason`,
@@ -13,13 +13,23 @@
  * No signature in §5 may differ from what is written here. If you believe one is
  * wrong: stop and report it. Do not edit it, and do not work around it.
  *
- * WP5, Thursday: add the viem-backed `createRegistryClient()` below the
- * declarations. Do not redeclare these types locally anywhere else.
+ * SP-01 adds the viem-backed factory below the declarations. Do not redeclare
+ * these types locally anywhere else.
  *
  * D4: viem only. wagmi is NOT a dependency of this or any other module.
  */
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  parseAbi,
+  parseEventLogs,
+  type PublicClient,
+  type WalletClient,
+} from "viem";
 import type { Address, Bytes32, Hex } from "@/lib/contracts/money";
 import type { ProcurementMandate } from "@/lib/mandate/types";
+import { hashMandate } from "@/lib/mandate";
+import type { ChainEnvironment } from "./config";
 
 export const STAGE = { sample: 0, deposit: 1, balance: 2 } as const;
 export type Stage = keyof typeof STAGE;
@@ -55,6 +65,10 @@ export const REVERT_COPY: Record<RevertReason, string> = {
 export interface RecordArgs {
   mandateHash: Bytes32; amountMinor: bigint; payeeHash: Bytes32;
   payeeSet: Bytes32[]; poValueMinor: bigint; stage: Stage;
+  /** A1 — required when stage === "deposit" and APPROVAL_ONCHAIN_VERIFY is true. */
+  approvalSig?: Hex;
+  /** A1 — must equal the signed PaymentApproval.nonce. The contract cannot derive it. */
+  approvalNonce?: Bytes32;
 }
 
 export type SimulateResult =
@@ -71,7 +85,7 @@ export class MandateHashMismatch extends Error {}
 export interface RegistryClient {
   /**
    * D0: `mandateHash` is READ BACK from the contract (simulate return value, confirmed against
-   * the MandateCreated event). The client then asserts it equals hashMandate(m, registry)
+   * the MandateCreated event). The client then asserts it equals hashMandate(m, explicitDomain)
    * and throws MandateHashMismatch on disagreement. We never send a hash and never trust ours.
    */
   create(m: ProcurementMandate, sig: Hex): Promise<{ txHash: Hex; mandateHash: Bytes32 }>;
@@ -114,3 +128,162 @@ export interface RegistryClient {
  * sentence would otherwise overclaim about a contract nobody can inspect.
  */
 export const APPROVAL_ONCHAIN_VERIFY = true;
+
+const ZERO_BYTES32 = `0x${"00".repeat(32)}` as Bytes32;
+
+const REGISTRY_ABI = parseAbi([
+  "error MandateExists()", "error UnknownMandate()", "error BadSignature()",
+  "error NotAgent()", "error NotPrincipal()", "error Revoked()", "error NotYetValid()",
+  "error Expired()", "error PayeeOutOfScope()", "error ExceedsMaxTotal()",
+  "error DepositCapExceeded()", "error BadPayeeSet()", "error BadApproval()",
+  "event MandateCreated(bytes32 indexed mandateHash, address indexed principal, address indexed agent)",
+  "event PaymentAuthorized(bytes32 indexed mandateHash, uint256 amountMinor, bytes32 payeeHash, uint256 poValueMinor, uint8 stage, uint256 remainingMinor)",
+  "function create((address principal,address agent,bytes32 purchaseRequestId,bytes32 fundingSource,uint256 maxTotal,uint256 autonomousMax,uint256 maxDepositBps,bytes32 payeeScope,string purpose,uint256 validAfter,uint256 validUntil,bytes32 nonce) m, bytes sig) returns (bytes32 mandateHash)",
+  "function record(bytes32 mandateHash,uint256 amountMinor,bytes32 payeeHash,bytes32[] payeeSet,uint256 poValueMinor,uint8 stage,bytes approvalSig,bytes32 approvalNonce) returns (uint256 remainingMinor)",
+  "function remaining(bytes32 mandateHash) view returns (uint256)",
+]);
+
+const KNOWN_REVERTS = new Set<RevertReason>([
+  "MandateExists", "UnknownMandate", "BadSignature", "NotAgent", "NotPrincipal",
+  "Revoked", "NotYetValid", "Expired", "PayeeOutOfScope", "ExceedsMaxTotal",
+  "DepositCapExceeded", "BadPayeeSet", "BadApproval",
+]);
+
+function decodeRevert(error: unknown): { reason: RevertReason; raw: string } {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (error instanceof BaseError) {
+    const reverted = error.walk((candidate) => candidate instanceof ContractFunctionRevertedError);
+    if (reverted instanceof ContractFunctionRevertedError) {
+      const name = reverted.data?.errorName;
+      if (name && KNOWN_REVERTS.has(name as RevertReason)) {
+        return { reason: name as RevertReason, raw };
+      }
+    }
+  }
+  return { reason: "Unknown", raw };
+}
+
+function recordArguments(a: RecordArgs) {
+  return [
+    a.mandateHash,
+    a.amountMinor,
+    a.payeeHash,
+    a.payeeSet,
+    a.poValueMinor,
+    STAGE[a.stage],
+    a.approvalSig ?? "0x",
+    a.approvalNonce ?? ZERO_BYTES32,
+  ] as const;
+}
+
+export function createViemRegistryClient(args: {
+  environment: ChainEnvironment;
+  publicClient: PublicClient;
+  walletClient: WalletClient;
+}): RegistryClient {
+  const { environment, publicClient, walletClient } = args;
+  const account = walletClient.account;
+  if (!account) throw new Error("Registry wallet client requires an agent account");
+
+  return {
+    async create(m, sig) {
+      const simulation = await publicClient.simulateContract({
+        account,
+        address: environment.registryAddress,
+        abi: REGISTRY_ABI,
+        functionName: "create",
+        args: [m, sig],
+      });
+      const predicted = hashMandate(m, {
+        chainId: environment.chainId,
+        verifyingContract: environment.registryAddress,
+      });
+      if (simulation.result !== predicted) {
+        throw new MandateHashMismatch(
+          `Contract returned ${simulation.result}; local signing domain predicted ${predicted}`,
+        );
+      }
+
+      const txHash = await walletClient.writeContract(simulation.request);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const created = parseEventLogs({
+        abi: REGISTRY_ABI,
+        eventName: "MandateCreated",
+        logs: receipt.logs,
+      });
+      if (created.length !== 1 || created[0].args.mandateHash !== predicted) {
+        throw new MandateHashMismatch("MandateCreated event does not match the simulated mandate hash");
+      }
+      return { txHash, mandateHash: predicted };
+    },
+
+    async simulateRecord(a) {
+      try {
+        const simulation = await publicClient.simulateContract({
+          account,
+          address: environment.registryAddress,
+          abi: REGISTRY_ABI,
+          functionName: "record",
+          args: recordArguments(a),
+        });
+        return { ok: true, remainingMinor: simulation.result };
+      } catch (error) {
+        return { ok: false, ...decodeRevert(error) };
+      }
+    },
+
+    async record(a, options) {
+      let request;
+      try {
+        request = (await publicClient.simulateContract({
+          account,
+          address: environment.registryAddress,
+          abi: REGISTRY_ABI,
+          functionName: "record",
+          args: recordArguments(a),
+        })).request;
+      } catch (error) {
+        const { reason } = decodeRevert(error);
+        if (!options?.materializeRevert) return { ok: false, reason, txHash: null };
+        try {
+          const txHash = await walletClient.writeContract({
+            account,
+            chain: walletClient.chain,
+            address: environment.registryAddress,
+            abi: REGISTRY_ABI,
+            functionName: "record",
+            args: recordArguments(a),
+          });
+          await publicClient.waitForTransactionReceipt({ hash: txHash });
+          return { ok: false, reason, txHash };
+        } catch {
+          return { ok: false, reason, txHash: null };
+        }
+      }
+
+      const txHash = await walletClient.writeContract(request);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const remainingMinor = await this.remaining(a.mandateHash);
+      return { ok: true, txHash, remainingMinor, blockNumber: receipt.blockNumber };
+    },
+
+    remaining(mandateHash) {
+      return publicClient.readContract({
+        address: environment.registryAddress,
+        abi: REGISTRY_ABI,
+        functionName: "remaining",
+        args: [mandateHash],
+      });
+    },
+
+    explorerTx(txHash) {
+      return environment.chainId === 10143
+        ? `https://testnet.monadvision.com/tx/${txHash}`
+        : `${environment.rpcUrl}/tx/${txHash}`;
+    },
+
+    revokeCommand(mandateHash) {
+      return `cast send --rpc-url '${environment.rpcUrl}' '${environment.registryAddress}' 'revoke(bytes32)' '${mandateHash}'`;
+    },
+  };
+}

@@ -5,6 +5,7 @@ import type { Address, Bytes32 } from "@/lib/contracts/money";
 import type { ProcurementMandate, PaymentApproval } from "./types";
 import {
   hashMandate,
+  mandateDomain,
   signMandate,
   recoverMandateSigner,
   hashApproval,
@@ -19,6 +20,41 @@ const AGENT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as Address;
 
 const REGISTRY = "0x5FbDB2315678afecb367f032d93F642f64180aa3" as Address;
 const OTHER_REGISTRY = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512" as Address;
+const MONAD_DOMAIN = { chainId: 10143, verifyingContract: REGISTRY } as const;
+const OTHER_MONAD_DOMAIN = { chainId: 10143, verifyingContract: OTHER_REGISTRY } as const;
+
+describe("A2 explicit mandate domain", () => {
+  const monad = { chainId: 10143, verifyingContract: REGISTRY } as const;
+  const anvil = { chainId: 31337, verifyingContract: REGISTRY } as const;
+
+  it("constructs the signing domain from explicit chain and registry configuration", () => {
+    expect(mandateDomain(anvil)).toEqual({
+      name: "SourcePilot",
+      version: "1",
+      chainId: 31337,
+      verifyingContract: REGISTRY,
+    });
+  });
+
+  it("changing only chainId changes the mandate digest", () => {
+    expect(hashMandate(BASE, anvil)).not.toBe(hashMandate(BASE, monad));
+  });
+
+  it("changing only verifyingContract changes the mandate digest", () => {
+    expect(hashMandate(BASE, monad)).not.toBe(hashMandate(BASE, {
+      ...monad,
+      verifyingContract: OTHER_REGISTRY,
+    }));
+  });
+
+  it("has no implicit domain default", () => {
+    if (false) {
+      // @ts-expect-error A2 requires an explicit domain.
+      hashMandate(BASE);
+    }
+    expect(hashMandate.length).toBe(2);
+  });
+});
 
 const BASE: ProcurementMandate = {
   principal: PRINCIPAL,
@@ -58,46 +94,46 @@ const MUTATIONS: Array<[keyof ProcurementMandate, ProcurementMandate]> = [
 
 describe("hashMandate() — the digest binds ALL TWELVE signed fields", () => {
   it("is deterministic for identical input", () => {
-    expect(hashMandate(BASE, REGISTRY)).toBe(hashMandate(BASE, REGISTRY));
+    expect(hashMandate(BASE, MONAD_DOMAIN)).toBe(hashMandate(BASE, MONAD_DOMAIN));
   });
 
   it("returns a 32-byte hex digest", () => {
-    expect(hashMandate(BASE, REGISTRY)).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(hashMandate(BASE, MONAD_DOMAIN)).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
   // The D0 test, as a loop: any field the founder signed must move the digest.
   it.each(MUTATIONS)("changing %s changes the digest", (_field, mutated) => {
-    expect(hashMandate(mutated, REGISTRY)).not.toBe(hashMandate(BASE, REGISTRY));
+    expect(hashMandate(mutated, MONAD_DOMAIN)).not.toBe(hashMandate(BASE, MONAD_DOMAIN));
   });
 
   it("all twelve mutations produce twelve DISTINCT digests", () => {
-    const digests = new Set(MUTATIONS.map(([, m]) => hashMandate(m, REGISTRY)));
+    const digests = new Set(MUTATIONS.map(([, m]) => hashMandate(m, MONAD_DOMAIN)));
     expect(digests.size).toBe(12);
   });
 });
 
 describe("domain separation — without both of these a testnet mandate replays on mainnet", () => {
   it("binds verifyingContract: the same mandate under a different registry has a different digest", () => {
-    expect(hashMandate(BASE, OTHER_REGISTRY)).not.toBe(hashMandate(BASE, REGISTRY));
+    expect(hashMandate(BASE, OTHER_MONAD_DOMAIN)).not.toBe(hashMandate(BASE, MONAD_DOMAIN));
   });
 
   it("binds chainId 10143 (Monad testnet)", async () => {
     // Recovery must fail if the verifier assumes a different chainId, which it can only
     // do if chainId is genuinely part of the domain separator.
-    const sig = await signMandate(BASE, REGISTRY, PK_PRINCIPAL);
-    expect(recoverMandateSigner(BASE, REGISTRY, sig)).toBe(PRINCIPAL);
-    expect(recoverMandateSigner(BASE, OTHER_REGISTRY, sig)).not.toBe(PRINCIPAL);
+    const sig = await signMandate(BASE, MONAD_DOMAIN, PK_PRINCIPAL);
+    expect(recoverMandateSigner(BASE, MONAD_DOMAIN, sig)).toBe(PRINCIPAL);
+    expect(recoverMandateSigner(BASE, OTHER_MONAD_DOMAIN, sig)).not.toBe(PRINCIPAL);
   });
 });
 
 describe("signMandate() / recoverMandateSigner()", () => {
   it("round-trips to the signing address", async () => {
-    const sig = await signMandate(BASE, REGISTRY, PK_PRINCIPAL);
-    expect(recoverMandateSigner(BASE, REGISTRY, sig)).toBe(PRINCIPAL);
+    const sig = await signMandate(BASE, MONAD_DOMAIN, PK_PRINCIPAL);
+    expect(recoverMandateSigner(BASE, MONAD_DOMAIN, sig)).toBe(PRINCIPAL);
   });
 
   it("produces a 65-byte signature", async () => {
-    const sig = await signMandate(BASE, REGISTRY, PK_PRINCIPAL);
+    const sig = await signMandate(BASE, MONAD_DOMAIN, PK_PRINCIPAL);
     expect(sig).toMatch(/^0x[0-9a-f]{130}$/);
   });
 
@@ -105,15 +141,15 @@ describe("signMandate() / recoverMandateSigner()", () => {
   it.each(MUTATIONS)(
     "a genuine signature does NOT recover the principal once %s is altered",
     async (_field, mutated) => {
-      const sig = await signMandate(BASE, REGISTRY, PK_PRINCIPAL);
-      expect(recoverMandateSigner(mutated, REGISTRY, sig)).not.toBe(PRINCIPAL);
+      const sig = await signMandate(BASE, MONAD_DOMAIN, PK_PRINCIPAL);
+      expect(recoverMandateSigner(mutated, MONAD_DOMAIN, sig)).not.toBe(PRINCIPAL);
     },
   );
 });
 
 describe("hashApproval() — binds all SIX fields including poValue (D5)", () => {
   const APPROVAL: PaymentApproval = {
-    mandateHash: hashMandate(BASE, REGISTRY),
+    mandateHash: hashMandate(BASE, MONAD_DOMAIN),
     payeeHash: keccak256(toHex("rain:payee:hanzhou-apparel")),
     amount: 147_900n,
     poValue: 493_000n,

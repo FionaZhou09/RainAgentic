@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "pnpm --filter sourcepilot dev",
     "emit:digest-vector": "tsx scripts/emit-digest-vector.ts",
+    "test:chain": "pnpm --filter sourcepilot test lib/chain",
     "build": "pnpm --filter sourcepilot build",
     "test": "pnpm --filter sourcepilot test"
   },

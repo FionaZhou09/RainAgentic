@@ -15,11 +15,12 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import type { Address, Bytes32, Hex } from "@/lib/contracts/money";
 import {
-  MANDATE_DOMAIN,
+  mandateDomain,
   MANDATE_TYPES,
   APPROVAL_TYPES,
   type ProcurementMandate,
   type PaymentApproval,
+  type MandateDomainConfig,
 } from "./types";
 
 export * from "./types";
@@ -36,9 +37,9 @@ export * from "./payee";
  * If you are about to pass the result of this function into a contract call: stop.
  * Accepting a caller-supplied digest is the exact defect ruling D0 was raised to kill.
  */
-export function hashMandate(m: ProcurementMandate, registry: Address): Bytes32 {
+export function hashMandate(m: ProcurementMandate, domain: MandateDomainConfig): Bytes32 {
   return hashTypedData({
-    domain: MANDATE_DOMAIN(registry),
+    domain: mandateDomain(domain),
     types: MANDATE_TYPES,
     primaryType: "ProcurementMandate",
     message: m,
@@ -51,11 +52,11 @@ export function hashMandate(m: ProcurementMandate, registry: Address): Bytes32 {
  */
 export async function signMandate(
   m: ProcurementMandate,
-  registry: Address,
+  domain: MandateDomainConfig,
   pk: Hex,
 ): Promise<Hex> {
   return privateKeyToAccount(pk).signTypedData({
-    domain: MANDATE_DOMAIN(registry),
+    domain: mandateDomain(domain),
     types: MANDATE_TYPES,
     primaryType: "ProcurementMandate",
     message: m,
@@ -71,15 +72,15 @@ export async function signMandate(
  */
 export function recoverMandateSigner(
   m: ProcurementMandate,
-  registry: Address,
+  domain: MandateDomainConfig,
   sig: Hex,
 ): Address {
-  return recoverSigner(hashMandate(m, registry), sig);
+  return recoverSigner(hashMandate(m, domain), sig);
 }
 
 export function hashApproval(a: PaymentApproval, registry: Address): Bytes32 {
   return hashTypedData({
-    domain: MANDATE_DOMAIN(registry),
+    domain: mandateDomain({ chainId: 10143, verifyingContract: registry }),
     types: APPROVAL_TYPES,
     primaryType: "PaymentApproval",
     message: a,

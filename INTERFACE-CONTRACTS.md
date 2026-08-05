@@ -16,6 +16,8 @@
 | 5 | D5 | `poValueMinor` caller-asserted, emitted, bound in `PaymentApproval`. `APPROVAL_ONCHAIN_VERIFY` flag reserved for the Saturday-evening 45-min upgrade. Language discipline pinned as a code constant. |
 | 6 | D6 | `idempotencyKey` typed as a branded `AttemptKey`, minted only by `newAttemptKey()`. Three ratified wordings pinned in `DEMO_COPY`. |
 | 7 | D7 | §5.7 pipeline is normative; PRD §9 ordering is dead. |
+| 8 | Boss-approved amendment, 2026-08-05 | Removed `ConstraintPreview` and `previewConstraints`. `simulateRecord` is the only constraint preview, so local code cannot drift from Solidity enforcement. |
+| 9 | A2, boss-approved 2026-08-05 | Canonical mandate domain, hash, sign, and recovery helpers now require explicit `chainId` and `verifyingContract`. No implicit Monad default; RegistryClient uses the same helper. |
 
 ---
 
@@ -182,10 +184,14 @@ export function assessQuotes(
 
 ```ts
 // lib/mandate/types.ts
-export const MANDATE_DOMAIN = (verifyingContract: Address) => ({
+export interface MandateDomainConfig {
+  chainId: 31337 | 10143;
+  verifyingContract: Address;
+}
+export const mandateDomain = (config: MandateDomainConfig) => ({
   name: "SourcePilot", version: "1",
-  chainId: 10143,            // Monad testnet. Without chainId + verifyingContract this replays on mainnet.
-  verifyingContract,
+  chainId: config.chainId,
+  verifyingContract: config.verifyingContract,
 } as const);
 
 /** Twelve fields. This list is the source of truth; MandateInput.sol mirrors it in this exact order. */
@@ -219,9 +225,9 @@ export interface ProcurementMandate {
  * It exists so the client can assert equality against the hash the contract returns.
  * If they disagree, that is a P0 — throw, do not proceed.
  */
-export function hashMandate(m: ProcurementMandate, registry: Address): Bytes32;
-export function signMandate(m: ProcurementMandate, registry: Address, pk: Hex): Promise<Hex>;
-export function recoverMandateSigner(m: ProcurementMandate, registry: Address, sig: Hex): Address;
+export function hashMandate(m: ProcurementMandate, domain: MandateDomainConfig): Bytes32;
+export function signMandate(m: ProcurementMandate, domain: MandateDomainConfig, pk: Hex): Promise<Hex>;
+export function recoverMandateSigner(m: ProcurementMandate, domain: MandateDomainConfig, sig: Hex): Address;
 
 // ---- payee scope: published-preimage scheme ---------------------------------
 /** trim → NFKC → lowercase → collapse internal whitespace. One implementation, UI and chain alike. */
@@ -255,18 +261,6 @@ export interface PaymentApproval {
 export function hashApproval(a: PaymentApproval, registry: Address): Bytes32;
 export function recoverApprover(a: PaymentApproval, registry: Address, sig: Hex): Address;
 
-/**
- * Off-chain PREVIEW only — UI copy and fast feedback.
- * NOT the authority. /api/pay must never substitute this for the contract call.
- */
-export interface ConstraintPreview {
-  wouldPass: boolean;
-  failures: Array<{ code: RevertReason; message: string }>;
-}
-export function previewConstraints(
-  m: ProcurementMandate,
-  args: { amount: bigint; poValue: bigint; payeeHash: Bytes32; stage: number; spent: bigint; now: bigint },
-): ConstraintPreview;
 ```
 
 **Cross-language pin — WP2 writes it Friday, WP3's Foundry test asserts against it.** This is how a digest mismatch fails in a red test at 1:20 PM instead of inside `/api/pay` at 3:45 PM.
@@ -416,7 +410,7 @@ export class MandateHashMismatch extends Error {}   // D0. Unrecoverable. Never 
 export interface RegistryClient {
   /**
    * D0: `mandateHash` is READ BACK from the contract (simulate return value, confirmed against
-   * the MandateCreated event). The client then asserts it equals hashMandate(m, registry)
+   * the MandateCreated event). The client then asserts it equals hashMandate(m, explicitDomain)
    * and throws MandateHashMismatch on disagreement. We never send a hash and never trust ours.
    */
   create(m: ProcurementMandate, sig: Hex): Promise<{ txHash: Hex; mandateHash: Bytes32 }>;

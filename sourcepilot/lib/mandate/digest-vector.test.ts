@@ -6,6 +6,7 @@ import { deserializeMandate } from "./serialize";
 import vectorJson from "./__fixtures__/digest-vector.json";
 
 const vector = vectorJson as unknown as DigestVector;
+const vectorDomain = () => ({ chainId: 10143, verifyingContract: vector.registry } as const);
 
 describe("digest-vector.json — the cross-language pin WP3 asserts against", () => {
   it("exists and carries every field of the DigestVector shape", () => {
@@ -28,12 +29,12 @@ describe("digest-vector.json — the cross-language pin WP3 asserts against", ()
 
   it("expectedDigest is reproducible from the twelve fields alone", () => {
     const m = deserializeMandate(vector.mandate);
-    expect(hashMandate(m, vector.registry)).toBe(vector.expectedDigest);
+    expect(hashMandate(m, vectorDomain())).toBe(vector.expectedDigest);
   });
 
   it("expectedSigner recovers from the signature over the untampered mandate", () => {
     const m = deserializeMandate(vector.mandate);
-    expect(recoverMandateSigner(m, vector.registry, vector.signature)).toBe(vector.expectedSigner);
+    expect(recoverMandateSigner(m, vectorDomain(), vector.signature)).toBe(vector.expectedSigner);
     expect(vector.expectedSigner).toBe(m.principal);
   });
 
@@ -68,7 +69,7 @@ describe("tamperedMandate — D0's regression test, handed to WP3", () => {
 
   it("produces a DIFFERENT digest than the signed mandate", () => {
     const tampered = deserializeMandate(vector.tamperedMandate);
-    expect(hashMandate(tampered, vector.registry)).not.toBe(vector.expectedDigest);
+    expect(hashMandate(tampered, vectorDomain())).not.toBe(vector.expectedDigest);
   });
 
   /**
@@ -78,7 +79,7 @@ describe("tamperedMandate — D0's regression test, handed to WP3", () => {
    */
   it("does NOT recover the principal when paired with the unchanged signature", () => {
     const tampered = deserializeMandate(vector.tamperedMandate);
-    const recovered = recoverMandateSigner(tampered, vector.registry, vector.signature);
+    const recovered = recoverMandateSigner(tampered, vectorDomain(), vector.signature);
     expect(recovered).not.toBe(vector.expectedSigner);
   });
 });

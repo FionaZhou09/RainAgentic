@@ -5,10 +5,16 @@
  */
 import type { Address, Bytes32 } from "@/lib/contracts/money";
 
-export const MANDATE_DOMAIN = (verifyingContract: Address) => ({
-  name: "SourcePilot", version: "1",
-  chainId: 10143,            // Monad testnet. Without chainId + verifyingContract this replays on mainnet.
-  verifyingContract,
+export interface MandateDomainConfig {
+  chainId: 31337 | 10143;
+  verifyingContract: Address;
+}
+
+export const mandateDomain = (config: MandateDomainConfig) => ({
+  name: "SourcePilot",
+  version: "1",
+  chainId: config.chainId,
+  verifyingContract: config.verifyingContract,
 } as const);
 
 /** Twelve fields. This list is the source of truth; MandateInput.sol mirrors it in this exact order. */

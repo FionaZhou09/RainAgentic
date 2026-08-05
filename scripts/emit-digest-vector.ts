@@ -30,6 +30,7 @@ const PK_PRINCIPAL = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7b
 const AGENT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as Address;
 /** Deterministic stand-in for the deployed registry; WP3 re-signs against the real one if needed. */
 const REGISTRY = "0x5FbDB2315678afecb367f032d93F642f64180aa3" as Address;
+const MONAD_DOMAIN = { chainId: 10143, verifyingContract: REGISTRY } as const;
 
 const PAYEE_REFS = [
   "rain:payee:hanzhou-apparel",
@@ -60,9 +61,9 @@ async function main() {
     nonce: keccak256(toHex("nonce:pr-1042:session-1")),
   };
 
-  const expectedDigest = hashMandate(mandate, REGISTRY);
-  const signature = await signMandate(mandate, REGISTRY, PK_PRINCIPAL);
-  const expectedSigner = recoverMandateSigner(mandate, REGISTRY, signature);
+  const expectedDigest = hashMandate(mandate, MONAD_DOMAIN);
+  const signature = await signMandate(mandate, MONAD_DOMAIN, PK_PRINCIPAL);
+  const expectedSigner = recoverMandateSigner(mandate, MONAD_DOMAIN, signature);
 
   if (expectedSigner !== principal) {
     throw new Error(`emit-digest-vector: sign/recover round-trip failed (${expectedSigner} !== ${principal})`);
@@ -76,7 +77,7 @@ async function main() {
   const tamperedField = "maxTotal" as const;
   const tamperedMandate: ProcurementMandate = { ...mandate, maxTotal: 1_840_000n };
 
-  if (recoverMandateSigner(tamperedMandate, REGISTRY, signature) === principal) {
+  if (recoverMandateSigner(tamperedMandate, MONAD_DOMAIN, signature) === principal) {
     throw new Error("emit-digest-vector: tampered mandate still recovers the principal — vector is worthless");
   }
 
