@@ -8,6 +8,25 @@ const local = (content: string, path = "sourcepilot/app/page.tsx"): ClaimInput =
 });
 
 describe("chain-claim verifier mutations", () => {
+  it("invokes both actual Local Anvil route handlers and rejects runtime key divergence", async () => {
+    const module = await import("./verify-chain-claims") as Record<string, unknown>;
+    expect(typeof module.verifyRuntimeRoutes).toBe("function");
+    const verifyRuntimeRoutes = module.verifyRuntimeRoutes as (options?: {
+      mutate?: (route: string, body: Record<string, unknown>) => Record<string, unknown>;
+    }) => Promise<Array<{ route: string; body: Record<string, unknown> }>>;
+
+    const actual = await verifyRuntimeRoutes();
+    expect(actual.map(({ route }) => route).sort()).toEqual(["/api/mandate", "/api/pay"]);
+    expect(actual.every(({ body }) => typeof body.transactionHash === "string"
+      && !("monadTxHash" in body) && !("monadTransaction" in body))).toBe(true);
+
+    for (const target of ["/api/mandate", "/api/pay"]) {
+      await expect(verifyRuntimeRoutes({ mutate: (route, body) => route === target
+        ? { ...body, monadTxHash: body.transactionHash, transactionHash: undefined }
+        : body })).rejects.toThrow(/runtime|Monad|identifier/i);
+    }
+  }, 30_000);
+
   it("inspects actual configured route response objects under 31337", () => {
     const input = {
       ...local("safe"),

@@ -1,8 +1,22 @@
 import { readdir, readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createPublicClient, createWalletClient, defineChain, http, keccak256, toHex, type Hex } from "viem";
 import { APPROVAL_ONCHAIN_VERIFY } from "../sourcepilot/lib/chain/registry";
+import { createViemRegistryClient } from "../sourcepilot/lib/chain/registry";
 import { DEMO_COPY, ENFORCEMENT_CLAIM } from "../sourcepilot/lib/contracts/copy";
+import { POST as mandatePost } from "../sourcepilot/app/api/mandate/route";
+import { POST as payPost } from "../sourcepilot/app/api/pay/route";
+import { createEventStore } from "../sourcepilot/lib/events";
+import { ASSUMPTIONS, MANDATE_FIXTURE, PAYEE_REFS, PR_1042, QUOTE_B, SUPPLIERS } from "../sourcepilot/lib/fixtures/pr-1042";
+import { computePayeeScope, mandateDomain, MANDATE_TYPES, type ProcurementMandate } from "../sourcepilot/lib/mandate";
+import { serializeMandate } from "../sourcepilot/lib/mandate/serialize";
+import { MockRainAdapterImpl } from "../sourcepilot/lib/rain/mock";
+import { newAttemptKey } from "../sourcepilot/lib/rain/port";
+import { assessQuotes } from "../sourcepilot/lib/score";
+import { startAnvil } from "./start-anvil";
 
 export type ClaimSource = { path: string; content: string };
 export type ClaimInput = {
@@ -12,6 +26,8 @@ export type ClaimInput = {
 };
 
 const HASH = /0x[0-9a-fA-F]{64}/;
+const execFileAsync = promisify(execFile);
+const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const BANNED = [
   /replay the same request/i,
   /enforces the 30%/i,
@@ -84,6 +100,71 @@ function collectKeys(value: unknown, keys = new Set<string>()): Set<string> {
   return keys;
 }
 
+export async function verifyRuntimeRoutes(options: {
+  mutate?: (route: string, body: Record<string, unknown>) => Record<string, unknown>;
+} = {}): Promise<Array<{ route: "/api/mandate" | "/api/pay"; body: Record<string, unknown> }>> {
+  const anvil = await startAnvil();
+  try {
+    const contractsDirectory = resolve(ROOT, "sourcepilot/contracts");
+    await execFileAsync("/Users/yingzhou/.foundry/bin/forge", ["build"], { cwd: contractsDirectory });
+    const artifact = JSON.parse(await readFile(resolve(contractsDirectory, "out/MandateRegistry.sol/MandateRegistry.json"), "utf8")) as {
+      abi: readonly unknown[]; bytecode: { object: Hex };
+    };
+    const chain = defineChain({ id: 31337, name: "Local Anvil", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      rpcUrls: { default: { http: [anvil.rpcUrl] } } });
+    const transport = http(anvil.rpcUrl);
+    const publicClient = createPublicClient({ chain, transport });
+    const unlocked = createWalletClient({ chain, transport });
+    const [principal, agent] = await unlocked.getAddresses();
+    const deployment = await publicClient.waitForTransactionReceipt({ hash: await unlocked.deployContract({
+      account: principal, chain, abi: artifact.abi, bytecode: artifact.bytecode.object,
+    }) });
+    if (!deployment.contractAddress) throw new Error("Runtime route verification deployment returned no address");
+    const environment = { chainId: 31337 as const, rpcUrl: anvil.rpcUrl, registryAddress: deployment.contractAddress, label: "Local Anvil" as const };
+    const registry = createViemRegistryClient({ environment, publicClient,
+      walletClient: createWalletClient({ account: agent, chain, transport }) });
+    const scope = computePayeeScope(PAYEE_REFS);
+    const now = Math.floor(Date.now() / 1000);
+    const mandate: ProcurementMandate = { principal, agent, purchaseRequestId: PR_1042.idHash,
+      fundingSource: keccak256(toHex("verify claims runtime funding")), maxTotal: MANDATE_FIXTURE.maxTotalMinor,
+      autonomousMax: MANDATE_FIXTURE.autonomousMaxMinor, maxDepositBps: MANDATE_FIXTURE.maxDepositBps,
+      payeeScope: scope.scope, purpose: "Verify actual route serialization", validAfter: BigInt(now - 60),
+      validUntil: BigInt(now + 3600), nonce: keccak256(toHex("verify actual runtime routes")) };
+    const domain = { chainId: 31337 as const, verifyingContract: environment.registryAddress };
+    const signature = await unlocked.signTypedData({ account: principal, domain: mandateDomain(domain),
+      types: MANDATE_TYPES, primaryType: "ProcurementMandate", message: mandate });
+
+    const mandateResponse = await mandatePost.withDependencies({ registry, environment, events: createEventStore() })(
+      new Request("http://local/api/mandate", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mandate: serializeMandate(mandate), signature, payeeRefs: PAYEE_REFS }) }),
+    );
+    if (!mandateResponse.ok) throw new Error(`Actual /api/mandate verification failed with ${mandateResponse.status}`);
+    const mandateBody = await mandateResponse.json() as Record<string, unknown>;
+    const mandateHash = mandateBody.mandateHash as Hex;
+    const assessment = assessQuotes(PR_1042, [QUOTE_B], SUPPLIERS, ASSUMPTIONS)[0];
+    const payResponse = await payPost.withDependencies({ purchaseRequest: PR_1042, quote: QUOTE_B, supplier: SUPPLIERS[1],
+      assessment, mandate, mandateHash, payeeSet: scope.leaves, caller: agent, mandateDomain: domain, registry,
+      rain: new MockRainAdapterImpl({ statusDelaysMs: [0, 0, 0] }), events: createEventStore(), attemptCache: new Map() })(
+      new Request("http://local/api/pay", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+        purchaseRequestId: PR_1042.id, supplierId: QUOTE_B.supplierId, payeeRef: SUPPLIERS[1].payeeRef,
+        amountMinor: 18_000, stage: "sample", idempotencyKey: newAttemptKey(),
+      }) }),
+    );
+    if (!payResponse.ok) throw new Error(`Actual /api/pay verification failed with ${payResponse.status}`);
+    const actual = [
+      { route: "/api/mandate" as const, body: mandateBody },
+      { route: "/api/pay" as const, body: await payResponse.json() as Record<string, unknown> },
+    ].map(({ route, body }) => ({ route, body: options.mutate?.(route, body) ?? body }));
+    verifyChainClaims({ chainId: 31337, registryAddress: environment.registryAddress, sources: [], runtimeResponses: actual });
+    for (const { route, body } of actual) {
+      if (typeof body.transactionHash !== "string") fail(`runtime ${route}`, "canonical transactionHash is required");
+    }
+    return actual;
+  } finally {
+    await anvil.stop();
+  }
+}
+
 async function collect(directory: string): Promise<ClaimSource[]> {
   const output: ClaimSource[] = [];
   try {
@@ -108,10 +189,11 @@ async function main() {
     collect(resolve(root, "output")),
   ])).flat();
   if (chainId === 31337) {
+    const runtimeResponses = await verifyRuntimeRoutes();
     const { runDemo } = await import("./harness");
-    const runtime = await runDemo();
-    sources.push({ path: "scripts/harness-output", content: JSON.stringify(runtime, (_, value) => typeof value === "bigint" ? value.toString() : value) });
-    verifyChainClaims({ chainId, registryAddress, sources, runtimeResponses: [{ route: "/api/pay", body: runtime }] });
+    const harnessOutput = await runDemo();
+    sources.push({ path: "scripts/harness-output", content: JSON.stringify(harnessOutput, (_, value) => typeof value === "bigint" ? value.toString() : value) });
+    verifyChainClaims({ chainId, registryAddress, sources, runtimeResponses });
   } else {
     verifyChainClaims({ chainId, registryAddress, sources });
   }
