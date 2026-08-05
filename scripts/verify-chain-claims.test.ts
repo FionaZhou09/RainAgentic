@@ -21,19 +21,26 @@ describe("chain-claim verifier mutations", () => {
     expect(() => verifyChainClaims(local(JSON.stringify({ txHash: `0x${"a".repeat(64)}` }), "output/playwright/evidence.json"))).toThrow(/environment/i);
   });
 
+  it.each(["sourcepilot/app/page.tsx", "scripts/harness-output"])("rejects unlabeled transaction/hash presentation in %s", (path) => {
+    expect(() => verifyChainClaims(local(`Transaction hash: 0x${"a".repeat(64)}`, path))).toThrow(/Local Anvil|unlabeled/i);
+    expect(() => verifyChainClaims(local(`Local Anvil transaction hash: 0x${"a".repeat(64)}`, path))).not.toThrow();
+  });
+
   it("rejects every governed banned string", () => {
     for (const mutation of [
       "replay the same request",
       "the contract enforces the 30% cap",
       "the contract enforces the thirty percent cap",
       "expires at the end of the month",
+      "expires in sixty days",
+      "Supplier was over budget and eliminated",
     ]) {
       expect(() => verifyChainClaims(local(mutation))).toThrow();
     }
   });
 
-  it("rejects shipped enforcement copy that disagrees with APPROVAL_ONCHAIN_VERIFY", () => {
-    expect(() => verifyChainClaims({ ...local("safe"), approvalOnchainVerify: true, shippedEnforcementClaim: "wrong claim" })).toThrow(/enforcement/i);
+  it.each([true, false])("rejects shipped enforcement copy that disagrees when APPROVAL_ONCHAIN_VERIFY=%s", (flag) => {
+    expect(() => verifyChainClaims({ ...local("safe"), approvalOnchainVerify: flag, shippedEnforcementClaim: "wrong claim" })).toThrow(/enforcement/i);
   });
 
   it("rejects mismatched Monad evidence registry metadata", () => {

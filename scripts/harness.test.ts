@@ -8,7 +8,7 @@ afterEach(async () => {
 });
 
 describe("cold-start real-Anvil demo harness", () => {
-  it("deploys and registers a real mandate, then runs the four locked beats in order", async () => {
+  it("deploys and registers one real mandate, then runs the locked purchase beats in order", async () => {
     const harness = await createDemoHarness();
     active.push(harness);
 
@@ -18,12 +18,10 @@ describe("cold-start real-Anvil demo harness", () => {
       "autonomous_sample",
       "escalation",
       "changed_payee",
-      "revocation",
     ]);
     expect(arc[0].records.at(-1)).toMatchObject({ outcome: "autonomous", amountMinor: 18_000 });
     expect(arc[1].records.map((record) => record.outcome)).toEqual(["pending_approval", "approved"]);
     expect(arc[2].records.at(-1)).toMatchObject({ outcome: "blocked", reason: "PayeeOutOfScope", rainCalls: 0 });
-    expect(arc[3].records.at(-1)).toMatchObject({ outcome: "blocked", reason: "Revoked", rainCalls: 0 });
     expect(arc.spentMinor).toBe(165_900n);
     expect(arc.registryAddress).toMatch(/^0x[0-9a-fA-F]{40}$/);
     expect(arc.mandateHash).toMatch(/^0x[0-9a-fA-F]{64}$/);
@@ -44,16 +42,34 @@ describe("cold-start real-Anvil demo harness", () => {
   it("demonstrates D3 on-chain ceiling exhaustion after the locked arc", async () => {
     const harness = await createDemoHarness();
     active.push(harness);
-    await harness.runLockedArc();
+    const arc = await harness.runLockedArc();
 
-    expect(await harness.fireSample(2)).toMatchObject({ outcome: "autonomous", remainingMinor: "100" });
-    expect(await harness.fireSample(3)).toMatchObject({ outcome: "blocked", reason: "ExceedsMaxTotal", rainCalls: 0 });
+    const sample2 = await harness.fireSample(2);
+    const sample3 = await harness.fireSample(3);
+    expect(sample2).toMatchObject({ outcome: "autonomous", remainingMinor: "100", mandateHash: arc.mandateHash });
+    expect(sample3).toMatchObject({ outcome: "blocked", reason: "ExceedsMaxTotal", rainCalls: 0, mandateHash: arc.mandateHash });
+  }, 30_000);
+
+  it("runs the irreversible revocation closer only after D3 on the same mandate", async () => {
+    const harness = await createDemoHarness();
+    active.push(harness);
+    const arc = await harness.runLockedArc();
+    await expect(harness.runRevocationCloser()).rejects.toThrow(/after D3/i);
+    await harness.fireSample(2);
+    await harness.fireSample(3);
+
+    const revoked = await harness.runRevocationCloser();
+    expect(revoked).toMatchObject({ outcome: "blocked", reason: "Revoked", rainCalls: 0, mandateHash: arc.mandateHash });
+    expect(arc.flatMap((beat) => beat.records).every((record) => record.mandateHash === arc.mandateHash)).toBe(true);
   }, 30_000);
 
   it("proves blocked beats made zero Rain calls", async () => {
     const harness = await createDemoHarness();
     active.push(harness);
     await harness.runLockedArc();
+    await harness.fireSample(2);
+    await harness.fireSample(3);
+    await harness.runRevocationCloser();
     expect(() => harness.assertZeroRainCalls()).not.toThrow();
   }, 30_000);
 

@@ -23,15 +23,17 @@ const REVOKE_ABI = parseAbi(["function revoke(bytes32 mandateHash)"]);
 export type HarnessRecord = {
   environment: "Local Anvil"; chainId: 31337; outcome: PayResponse["outcome"];
   amountMinor: number; attemptKey: AttemptKey; approvalNonce?: Hex; reason?: string;
-  remainingMinor?: string; rainCalls: number; copy: string;
+  remainingMinor?: string; rainCalls: number; copy: string; mandateHash: Hex;
 };
-export type HarnessBeat = { beat: "autonomous_sample" | "escalation" | "changed_payee" | "revocation"; records: HarnessRecord[] };
+export type HarnessBeat = { beat: "autonomous_sample" | "escalation" | "changed_payee"; records: HarnessRecord[] };
 export type LockedArc = HarnessBeat[] & { spentMinor: bigint; registryAddress: Address; mandateHash: Hex };
+export type HarnessPayResponse = PayResponse & { environment: "Local Anvil"; chainId: 31337; mandateHash: Hex; rainCalls: number };
 
 export interface DemoHarness {
   readonly rpcUrl: string; readonly registryAddress: Address; readonly stopped: boolean;
   runLockedArc(): Promise<LockedArc>;
   fireSample(n: 2 | 3): Promise<HarnessRecord>;
+  runRevocationCloser(): Promise<HarnessPayResponse>;
   assertZeroRainCalls(): void;
   printRevokeCommand(): string;
   stop(): Promise<void>;
@@ -39,12 +41,12 @@ export interface DemoHarness {
 
 type Track = { context: PayContext; rain: MockRainAdapterImpl; registry: RegistryClient; mandateHash: Hex };
 
-function record(response: PayResponse, amountMinor: number, key: AttemptKey, rainBefore: number, rain: MockRainAdapterImpl, approvalNonce?: Hex): HarnessRecord {
+function record(track: Track, response: PayResponse, amountMinor: number, key: AttemptKey, rainBefore: number, approvalNonce?: Hex): HarnessRecord {
   const recordedNonce = response.outcome === "pending_approval" ? response.approvalPayload.nonce : approvalNonce;
   return { environment: "Local Anvil", chainId: 31337, outcome: response.outcome, amountMinor, attemptKey: key,
     approvalNonce: recordedNonce, reason: response.outcome === "blocked" ? response.reason : undefined,
     remainingMinor: "remainingMinor" in response ? response.remainingMinor : undefined,
-    rainCalls: rain.calls.length - rainBefore, copy: DEMO_COPY.enforcementClaim };
+    rainCalls: track.rain.calls.length - rainBefore, copy: DEMO_COPY.enforcementClaim, mandateHash: track.mandateHash };
 }
 
 export async function createDemoHarness(): Promise<DemoHarness> {
@@ -84,17 +86,18 @@ export async function createDemoHarness(): Promise<DemoHarness> {
         mandateDomain: domain, registry, rain, events: createEventStore(), attemptCache: new Map() } };
     }
 
-    const locked = await makeTrack("locked arc");
-    const ceiling = await makeTrack("ceiling arc");
+    const locked = await makeTrack("purchase flow");
     const blockedRecords: HarnessRecord[] = [];
     let arc: LockedArc | undefined;
+    let d3Step = 1;
+    let revoked = false;
 
     async function pay(track: Track, amountMinor: number, stage: "sample" | "deposit", overrides: Partial<Parameters<typeof evaluatePayment>[0]> = {}) {
       const idempotencyKey = overrides.idempotencyKey ?? newAttemptKey();
       const before = track.rain.calls.length;
       const response = await evaluatePayment({ purchaseRequestId: PR_1042.id, supplierId: "SUP-B", payeeRef: SUPPLIERS[1].payeeRef,
         amountMinor, stage, idempotencyKey, ...overrides }, track.context);
-      return { response, output: record(response, amountMinor, idempotencyKey, before, track.rain, overrides.approvalNonce), key: idempotencyKey };
+      return { response, output: record(track, response, amountMinor, idempotencyKey, before, overrides.approvalNonce), key: idempotencyKey };
     }
 
     async function approve(track: Track, amountMinor: number) {
@@ -116,26 +119,33 @@ export async function createDemoHarness(): Promise<DemoHarness> {
         const escalation = await approve(locked, 147_900);
         const fraud = await pay(locked, 18_000, "sample", { payeeRef: FRAUD_PAYEE_REF });
         blockedRecords.push(fraud.output);
-        await principalWallet.writeContract({ address: registryAddress, abi: REVOKE_ABI, functionName: "revoke", args: [locked.mandateHash] });
-        const revoked = await pay(locked, 18_000, "sample", { materializeRevert: true });
-        blockedRecords.push(revoked.output);
-        await pay(ceiling, 18_000, "sample");
-        await approve(ceiling, 147_900);
-        ceiling.rain.reset();
         const beats: HarnessBeat[] = [
           { beat: "autonomous_sample", records: [sample.output] },
           { beat: "escalation", records: [escalation.pending, escalation.approved] },
           { beat: "changed_payee", records: [fraud.output] },
-          { beat: "revocation", records: [revoked.output] },
         ];
         arc = Object.assign(beats, { spentMinor: 165_900n, registryAddress, mandateHash: locked.mandateHash });
         return arc;
       },
       async fireSample(n) {
         if (!arc) throw new Error("Run the locked arc before D3 samples");
-        const result = await pay(ceiling, 18_000, "sample");
+        if (n !== d3Step + 1) throw new Error(`Expected fireSample(${d3Step + 1}) before fireSample(${n})`);
+        if (revoked) throw new Error("Mandate already revoked");
+        const result = await pay(locked, 18_000, "sample");
         if (n === 3) blockedRecords.push(result.output);
+        d3Step = n;
         return result.output;
+      },
+      async runRevocationCloser() {
+        if (d3Step !== 3) throw new Error("Run revocation closer only after D3 ceiling proof");
+        if (revoked) throw new Error("Revocation closer already ran");
+        const txHash = await principalWallet.writeContract({ address: registryAddress, abi: REVOKE_ABI, functionName: "revoke", args: [locked.mandateHash] });
+        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        revoked = true;
+        const result = await pay(locked, 18_000, "sample", { materializeRevert: true });
+        blockedRecords.push(result.output);
+        return Object.assign(result.response, { environment: "Local Anvil" as const, chainId: 31337 as const,
+          mandateHash: locked.mandateHash, rainCalls: result.output.rainCalls });
       },
       assertZeroRainCalls() {
         if (blockedRecords.length < 2 || blockedRecords.some((item) => item.rainCalls !== 0)) throw new Error("A blocked beat called Rain");
@@ -155,8 +165,11 @@ export async function runDemo() {
     const arc = await harness.runLockedArc();
     const second = await harness.fireSample(2);
     const third = await harness.fireSample(3);
+    const revocation = await harness.runRevocationCloser();
     harness.assertZeroRainCalls();
-    return { environment: "Local Anvil" as const, chainId: 31337 as const, copy: DEMO_COPY, arc, second, third, revokeCommand: harness.printRevokeCommand() };
+    return { environment: "Local Anvil" as const, chainId: 31337 as const, copy: DEMO_COPY,
+      mandateHash: arc.mandateHash, spentMinor: arc.spentMinor, arc, second, third, revocation,
+      revokeCommand: harness.printRevokeCommand() };
   } finally { await harness.stop(); }
 }
 

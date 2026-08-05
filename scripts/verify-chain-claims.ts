@@ -41,6 +41,14 @@ export function verifyChainClaims(input: ClaimInput): void {
       if (/Monad transaction/i.test(content)) fail(source.path, "Local Anvil output claims a Monad transaction");
       if (/testnet\.monadvision\.com\/tx\//i.test(content)) fail(source.path, "Local Anvil output contains a Monad explorer transaction link");
       if (/Monad\s+(?:tx|hash)[^\n]*0x[0-9a-fA-F]{64}/i.test(content)) fail(source.path, "local hash is presented as Monad evidence");
+      let metadataLabelsLocal = false;
+      try { metadataLabelsLocal = JSON.parse(source.content).environment === "Local Anvil"; } catch { /* source text */ }
+      for (const line of content.split("\n")) {
+        if (/(?:transaction|\btx\b|hash)[^\n]*0x[0-9a-fA-F]{64}/i.test(line)
+          && !/Local Anvil/i.test(line) && !metadataLabelsLocal) {
+          fail(source.path, "unlabeled transaction/hash presentation requires Local Anvil environment metadata under chain 31337");
+        }
+      }
     } else if (evidencePath(source.path)) {
       if (/Local Anvil|\bAnvil\b/i.test(content)) fail(source.path, "final Monad evidence contains a local/Anvil label");
     }
@@ -64,7 +72,7 @@ async function collect(directory: string): Promise<ClaimSource[]> {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = resolve(directory, entry.name);
       if (entry.isDirectory()) output.push(...await collect(path));
-      else if ([".ts", ".tsx", ".js", ".jsx", ".json"].includes(extname(entry.name))) output.push({ path, content: await readFile(path, "utf8") });
+      else if (!entry.name.includes(".test.") && [".ts", ".tsx", ".js", ".jsx", ".json"].includes(extname(entry.name))) output.push({ path, content: await readFile(path, "utf8") });
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;

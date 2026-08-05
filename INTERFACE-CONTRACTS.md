@@ -19,6 +19,7 @@
 | 8 | Boss-approved amendment, 2026-08-05 | Removed `ConstraintPreview` and `previewConstraints`. `simulateRecord` is the only constraint preview, so local code cannot drift from Solidity enforcement. |
 | 9 | A2, boss-approved 2026-08-05 | Canonical mandate domain, hash, sign, and recovery helpers now require explicit `chainId` and `verifyingContract`. No implicit Monad default; RegistryClient uses the same helper. |
 | 10 | A3, boss-approved 2026-08-05 | Approval helpers use the same explicit domain; `SerializedApproval` canonically carries all six fields; `PayRequest.approvalNonce` propagates the signed nonce unchanged. |
+| 11 | A4 Option B, boss-approved 2026-08-05 | The purchase flow and D3 ceiling proof use one mandate. Revocation is the final irreversible closer, exposed separately as `runRevocationCloser()`. |
 
 ---
 
@@ -717,7 +718,8 @@ export const FRAUD_PAYEE_REF = "rain:payee:hanzhou-apparel-new-account";  // mus
 ```ts
 // scripts/harness.ts
 export interface DemoHarness {
-  runLockedArc(): Promise<PayResponse[]>;   // the four scripted beats, cold start
+  /** One active mandate: $180 autonomous, $1,479 pending→approved, then changed-payee blocked. */
+  runLockedArc(): Promise<PayResponse[]>;   // leaves $1,659 spent and $181 remaining
   /**
    * D3: fire an additional $180 sample on demand, during Q&A.
    * After the locked arc ($1,659 spent, $181 remaining):
@@ -728,6 +730,8 @@ export interface DemoHarness {
   fireSample(n: 2 | 3): Promise<PayResponse>;
   assertZeroRainCalls(): void;              // the blocked beats
   printRevokeCommand(): string;             // D4 — pasted into the visible terminal
+  /** A4: only after fireSample(3); principal revokes, then a fresh $180 attempt returns Revoked. */
+  runRevocationCloser(): Promise<PayResponse>;
 }
 ```
 
