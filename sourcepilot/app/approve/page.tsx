@@ -12,8 +12,8 @@ const pending: Extract<PayResponse, { outcome: "pending_approval" }> = {
   paymentId: "pay_pr1042_deposit",
   reason: "Principal approval required.",
   approvalPayload: {
-    mandateHash: bytes32("1"), payeeHash: bytes32("2"), amount: "123300",
-    poValue: "411000", stage: 1, nonce: bytes32("3"),
+    mandateHash: bytes32("1"), payeeHash: bytes32("2"), amount: "147900",
+    poValue: "493000", stage: 1, nonce: bytes32("3"),
   },
   chainCalled: false,
   rainCalled: false,
@@ -33,7 +33,7 @@ export default function ApprovePage() {
     purchaseRequestId: "PR-1042",
     supplierId: "SUP-B",
     payeeRef: "rain:payee:hanzhou-apparel",
-    amountMinor: 123300,
+    amountMinor: 147900,
     stage: "deposit",
     idempotencyKey: newAttemptKey(),
   }} mandate={mandate} environment={environmentLabel(process.env.CHAIN_ID)} />;

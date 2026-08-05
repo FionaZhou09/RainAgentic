@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { REVERT_COPY, type RevertReason } from "@/lib/chain/registry";
 import { ASSUMPTIONS, PR_1042, QUOTES, SUPPLIERS } from "@/lib/fixtures/pr-1042";
 import { assessQuotes } from "@/lib/score";
@@ -41,5 +42,13 @@ describe("comparison UI logic", () => {
     expect(model.rows.find((row) => row.assessment.rank === 1)?.assessment.rank).toBe(1);
     expect(model.environment).toBe("Local Anvil");
     expect(model.displayRankingMetric).toBe(false);
+  });
+
+  it("does not combine fixed projector-width columns with clipped supplier cards", () => {
+    const source = readFileSync(new URL("./compare-screen.tsx", import.meta.url), "utf8");
+
+    expect(source).not.toContain("overflow-hidden rounded-2xl");
+    expect(source).not.toMatch(/(?:^|\s)xl:grid-cols-\[minmax\(190px,0\.8fr\)_minmax\(360px,1\.5fr\)_minmax\(250px,1fr\)\]/);
+    expect(source).toContain("2xl:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.5fr)_minmax(250px,1fr)]");
   });
 });

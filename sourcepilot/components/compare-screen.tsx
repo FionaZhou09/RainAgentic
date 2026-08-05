@@ -50,8 +50,8 @@ export function CompareScreen(props: CompareScreenProps) {
             {rows.map((row) => {
               const recommended = row.assessment.rank === 1;
               return (
-                <article key={row.supplier.id} className={`overflow-hidden rounded-2xl border bg-white shadow-[0_14px_40px_rgba(15,23,42,0.06)] ${recommended ? "border-emerald-500" : "border-slate-300"}`}>
-                  <div className="grid gap-6 p-6 xl:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.5fr)_minmax(250px,1fr)] xl:items-center">
+                <article key={row.supplier.id} className={`rounded-2xl border bg-white shadow-[0_14px_40px_rgba(15,23,42,0.06)] ${recommended ? "border-emerald-500" : "border-slate-300"}`}>
+                  <div className="grid gap-6 p-6 2xl:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.5fr)_minmax(250px,1fr)] 2xl:items-center">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-2xl font-bold tracking-tight">{row.supplier.name}</h2>

@@ -15,7 +15,7 @@ export function ApprovalScreen({ model, interactive = false, onApprovalSubmit, s
   return (
     <main className="min-h-screen bg-[#f4f6f8] text-slate-950">
       <header className="border-b border-slate-300 bg-[#101820] text-white">
-        <div className="mx-auto flex max-w-[1480px] flex-wrap items-center justify-between gap-4 px-6 py-5 lg:px-10">
+        <div className="mx-auto flex max-w-[1480px] flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-10">
           <div className="flex items-center gap-3">
             <span aria-hidden="true" className="grid size-10 place-items-center rounded-lg bg-[#d9ff55] text-lg font-black text-[#101820]">{DEMO_COPY.productMark}</span>
             <span className="text-xl font-bold tracking-tight">{DEMO_COPY.productName}</span>
@@ -27,7 +27,7 @@ export function ApprovalScreen({ model, interactive = false, onApprovalSubmit, s
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1480px] gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-10">
+      <div className="mx-auto grid w-full min-w-0 max-w-[1480px] gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-10">
         <section aria-labelledby="approval-title" className="min-w-0 space-y-7">
           <div className="border-b border-slate-300 pb-7">
             <h1 id="approval-title" className="text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Payment approval</h1>
@@ -37,7 +37,7 @@ export function ApprovalScreen({ model, interactive = false, onApprovalSubmit, s
             </div>
           </div>
 
-          <section aria-labelledby="mandate-summary" className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
+          <section aria-labelledby="mandate-summary" className="w-full min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-[0_14px_40px_rgba(15,23,42,0.06)] sm:p-6">
             <h2 id="mandate-summary" className="text-2xl font-bold tracking-tight">Signed mandate</h2>
             <dl className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               <DataPoint label="Cumulative ceiling" value={formatMinor(model.mandate.maxTotalMinor)} />
@@ -46,22 +46,22 @@ export function ApprovalScreen({ model, interactive = false, onApprovalSubmit, s
               <DataPoint label="Expiry" value={model.mandate.expiryLabel} />
             </dl>
             <dl className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2">
-              <DataPoint label="Payee scope commitment" value={<code className="break-all text-sm">{model.mandate.payeeScope}</code>} />
-              <DataPoint label="Published payee evidence" value={<code className="break-all text-sm">{model.mandate.payeePreimage}</code>} />
+              <DataPoint label="Payee scope commitment" value={<code className="min-w-0 break-all text-sm">{model.mandate.payeeScope}</code>} />
+              <DataPoint label="Published payee evidence" value={<code className="min-w-0 break-all text-sm">{model.mandate.payeePreimage}</code>} />
             </dl>
           </section>
 
-          {model.approvalPayload ? <section aria-labelledby="signed-payload" className="rounded-2xl border border-amber-300 bg-amber-50 p-6">
+          {model.approvalPayload ? <section aria-labelledby="signed-payload" className="w-full min-w-0 rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-6">
             <h2 id="signed-payload" className="text-2xl font-bold tracking-tight">Approval payload</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">Review the exact six EIP-712 fields before supplying an approval signature.</p>
             <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-              {model.signedFields?.map(({ label, value }) => <DataPoint key={label} label={label} value={<code className="break-all text-sm">{value}</code>} />)}
+              {model.signedFields?.map(({ label, value }) => <DataPoint key={label} label={label} value={<code className="min-w-0 break-all text-sm">{value}</code>} />)}
             </dl>
-            {interactive ? <form onSubmit={onApprovalSubmit} className="mt-6 border-t border-amber-300 pt-5">
+            {interactive ? <form onSubmit={onApprovalSubmit} className="mt-6 w-full min-w-0 border-t border-amber-300 pt-5">
               <label htmlFor="approval-signature" className="block text-sm font-bold">Injected approval signature</label>
               <p id="signature-help" className="mt-1 text-sm text-slate-600">The browser does not hold or use a private key. Supply the signature from the approved wallet boundary.</p>
               <input id="approval-signature" name="approvalSignature" aria-describedby="signature-help" required pattern="0x[0-9a-fA-F]+" autoComplete="off" className="mt-3 w-full rounded-lg border border-slate-400 bg-white px-4 py-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-emerald-300" />
-              <button type="submit" disabled={submitting} className="mt-4 rounded-lg bg-[#101820] px-5 py-3 font-bold text-white focus:outline-none focus:ring-4 focus:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "Submitting…" : "Submit approved payment"}</button>
+              <button type="submit" disabled={submitting} className="mt-4 w-full rounded-lg bg-[#101820] px-5 py-3 font-bold text-white focus:outline-none focus:ring-4 focus:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">{submitting ? "Submitting…" : "Submit approved payment"}</button>
               <p className="mt-3 text-sm text-slate-700" role="status" aria-live="polite">{interactionStatus}</p>
             </form> : null}
           </section> : null}
@@ -86,7 +86,7 @@ export function ApprovalScreen({ model, interactive = false, onApprovalSubmit, s
           </aside>
         </section>
 
-        <aside aria-label={DEMO_COPY.networkSpaceTitle} className="min-h-40 rounded-2xl border border-dashed border-slate-400 bg-slate-200/60 p-6 lg:min-h-[720px]">
+        <aside aria-label={DEMO_COPY.networkSpaceTitle} className="w-full min-w-0 rounded-2xl border border-dashed border-slate-400 bg-slate-200/60 p-4 sm:p-6 lg:min-h-[720px]">
           <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-slate-700">{DEMO_COPY.networkSpaceTitle}</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">{DEMO_COPY.networkSpaceBody}</p>
         </aside>

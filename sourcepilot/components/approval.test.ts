@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { REVERT_COPY, type RevertReason } from "@/lib/chain/registry";
 import type { Bytes32, Hex } from "@/lib/contracts/money";
 import type { PayRequest, PayResponse } from "@/lib/contracts/api";
@@ -28,7 +29,7 @@ const pending: Extract<PayResponse, { outcome: "pending_approval" }> = {
   paymentId: "pay_pending",
   reason: "Principal approval required.",
   approvalPayload: {
-    mandateHash: hash("1"), payeeHash: hash("2"), amount: "123300", poValue: "411000", stage: 1, nonce: hash("3"),
+    mandateHash: hash("1"), payeeHash: hash("2"), amount: "147900", poValue: "493000", stage: 1, nonce: hash("3"),
   },
   chainCalled: false,
   rainCalled: false,
@@ -131,5 +132,23 @@ describe("approval UI logic", () => {
   it("exposes a keyboard-operable approval boundary", () => {
     const model = buildApprovalModel(pending, summary, "Local Anvil");
     expect(model.approvalControl).toEqual({ inputId: "approval-signature", submitType: "submit", statusLive: "polite" });
+  });
+
+  it("pins the locked Supplier B deposit request and all six signed fields", () => {
+    const page = readFileSync(new URL("../app/approve/page.tsx", import.meta.url), "utf8");
+
+    expect(page).toContain('amount: "147900"');
+    expect(page).toContain('poValue: "493000"');
+    expect(page).toContain("amountMinor: 147900");
+    expect(page).not.toMatch(/123300|411000/);
+    expect(buildApprovalModel(pending, summary, "Local Anvil").signedFields).toHaveLength(6);
+  });
+
+  it("uses mobile-safe width and wrapping safeguards for approval evidence", () => {
+    const source = readFileSync(new URL("./approval-screen.tsx", import.meta.url), "utf8");
+
+    expect(source).toContain("min-w-0 break-all");
+    expect(source).toContain("w-full min-w-0");
+    expect(source).toMatch(/px-4 py-6[^\"]*sm:px-6 sm:py-8/);
   });
 });
