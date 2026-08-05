@@ -1,0 +1,29 @@
+# secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# node
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+sourcepilot/.next/
+sourcepilot/out/
+
+# foundry
+sourcepilot/contracts/cache/
+sourcepilot/contracts/out/
+sourcepilot/contracts/broadcast/*/*/run-latest.json
+
+# sqlite / drizzle
+*.sqlite
+*.sqlite3
+sourcepilot/drizzle/*.db
+
+# misc
+.DS_Store
+*.log
+coverage/

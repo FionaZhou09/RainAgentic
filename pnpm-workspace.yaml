@@ -1,0 +1,7 @@
+packages:
+  - "sourcepilot"
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+  better-sqlite3: true
+  esbuild: true
