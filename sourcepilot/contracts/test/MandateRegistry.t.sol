@@ -135,6 +135,26 @@ contract MandateRegistryTest is Test {
 
     // ------------------------------------------------- 1. cross-language pin
 
+    /**
+     * ⚠ THESE TWO TESTS ARE NOT REDUNDANT, AND THE PIN IS NOT THE OPTIONAL ONE.
+     *
+     * `test_create_reproducesTheTypeScriptDigestExactly` (below) and
+     * `test_create_onTamperedMandate_revertsBadSignature` (§2) look like they cover the
+     * same ground. They do not, and the asymmetry matters:
+     *
+     *   - The tamper test only asserts THAT create() reverts. Any broken encoding also
+     *     makes it revert, so it passes just as happily when the digest logic is wrong.
+     *     Verified, not assumed: mutating the EIP-712 domain name to "SourcePilotX" left
+     *     the tamper test PASSING while the pin test failed with BadSignature().
+     *   - The pin test asserts WHICH digest is produced, against a value TypeScript
+     *     computed independently on a previous day. It is the only thing in this suite
+     *     anchoring encoding correctness.
+     *
+     * So a broken encoding can pass the tamper test while failing the pin. Do NOT
+     * "simplify" the pin away on the grounds that tamperedMandate covers it — it does
+     * not, and removing it would leave the D0 claim resting on a test that cannot
+     * distinguish a correct contract from a broken one.
+     */
     function test_create_reproducesTheTypeScriptDigestExactly() public {
         bytes32 expected = vm.parseJsonBytes32(vectorJson, ".expectedDigest");
         bytes32 actual = _register();
@@ -166,6 +186,13 @@ contract MandateRegistryTest is Test {
 
     // ------------------------------------------------------------- 2. D0
 
+    /**
+     * ⚠ THIS TEST ALONE DOES NOT PROVE THE DIGEST IS CORRECT — it asserts only that
+     * create() reverts, and a broken encoding reverts too. It is load-bearing for D0
+     * (a genuine signature paired with altered constraints must be refused) but it is
+     * NOT a substitute for `test_create_reproducesTheTypeScriptDigestExactly`.
+     * See the full note above that test. Both must survive.
+     */
     function test_create_onTamperedMandate_revertsBadSignature() public {
         IMandateRegistry.MandateInput memory tampered = _vectorMandate();
         // ONE field changed: the ceiling the founder signed was $1,840. This says $18,400.

@@ -329,13 +329,23 @@ interface IMandateRegistry {
     ///          DepositCapExceeded (stage == 1 only; `poValueMinor` is caller-asserted — D5).
     /// Deposit check uses <= : amount * 10000 <= poValueMinor * maxDepositBps  (B sits at exactly 3000).
     /// Increments `spent` and emits PaymentAuthorized on success.
+    /// AMENDMENT A1 (Wed) — `approvalSig` + `approvalNonce` added. R4 was unimplementable
+    /// without them: `PaymentApproval` carries a `nonce`, and none of the six original
+    /// parameters let the contract reconstruct it, so the approval digest was literally
+    /// uncomputable on-chain. Deriving it from `spent` was rejected — it breaks silently
+    /// whenever another payment lands between signing and execution.
+    /// `approvalNonce` is recorded in a used-nonce map: an approval cannot be replayed
+    /// for a second identical payment. That is the D6 hazard in another coordinate.
+    /// Both are ignored when `stage != 1`.
     function record(
         bytes32 mandateHash,
         uint256 amountMinor,
         bytes32 payeeHash,
         bytes32[] calldata payeeSet,
         uint256 poValueMinor,
-        uint8   stage
+        uint8   stage,
+        bytes   calldata approvalSig,     // A1 — empty when stage != 1
+        bytes32 approvalNonce             // A1 — must match the signed PaymentApproval.nonce
     ) external returns (uint256 remainingMinor);
 
     /// D4: principal only. Called from a visible terminal via `cast send`. No server path, no wagmi.
@@ -387,6 +397,10 @@ export const REVERT_COPY: Record<RevertReason, string> = {
 export interface RecordArgs {
   mandateHash: Bytes32; amountMinor: bigint; payeeHash: Bytes32;
   payeeSet: Bytes32[]; poValueMinor: bigint; stage: Stage;
+  /** A1 — required when stage === "deposit" and APPROVAL_ONCHAIN_VERIFY is true. */
+  approvalSig?: Hex;
+  /** A1 — must equal the signed PaymentApproval.nonce. The contract cannot derive it. */
+  approvalNonce?: Bytes32;
 }
 
 export type SimulateResult =
