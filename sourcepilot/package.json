@@ -6,14 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
     "better-sqlite3": "^13.0.2",
     "drizzle-orm": "^0.45.2",
     "next": "^15",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "viem": "^2.55.10"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",
@@ -26,6 +30,7 @@
     "eslint": "^9",
     "eslint-config-next": "^15",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

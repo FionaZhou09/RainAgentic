@@ -111,6 +111,26 @@ The `.env.local` file write rendered **both private keys in the terminal**, and 
 
 These are testnet burners holding nothing, so nothing is lost. **But regenerate now, before funding.** The asymmetry decides it: two minutes today versus a **2-hour faucet cooldown per token** if we regenerate after funding — on the critical path. The principal key is the D4 revocation signer; anyone holding it could revoke mid-demo. Low probability, high blast radius, free to eliminate at this exact moment and expensive at any later one.
 
+## Open with boss — recommend cutting `previewConstraints` from §4
+
+Raised Tuesday, from WP2's lane. **`previewConstraints()` is redundant and I recommend removing it from the frozen contract.**
+
+`simulateRecord` is an `eth_call` — free, instant, and it returns the contract's *actual* revert reason. `previewConstraints` is a second, off-chain reimplementation of the same five rules. Two implementations of one ruleset drift, and the failure mode is the UI showing "would pass" while the chain reverts — the screen contradicting the chain, in front of judges whose job is spotting exactly that.
+
+I put it in §4 on Monday and I think I was wrong. It is not in WP2's done-criteria, so nothing is built yet and the cut costs nothing today. **Deferred and not being built pending your ruling.** Removing a signature from a frozen contract is your call, not mine.
+
+## Environment defects found by WP2's lane — authorized, all real
+
+Found in plan mode before any code was written:
+
+1. **`tsconfig.target` was ES2017.** BigInt literals (`184_000n`) are a hard TS error below ES2020 — meaning **the contracts frozen on Monday were literally uncompilable against the scaffold.** Bumped to ES2020.
+2. **No test runner installed at all.** TDD is mandatory on every package today; no runner means no red phase, so no package could have passed its done-criteria. Vitest added.
+3. **`viem` resolved only via workspace-root hoisting**, not declared in `sourcepilot`. Same class of bug as the shadow `pnpm-workspace.yaml`. Now declared explicitly.
+
+**Manager ruling, same round:** `lib/chain/registry.ts` is created Tuesday as **declarations only** — WP4 could not compile without `Stage`, which WP5 owns until Thursday. My sequencing error, not a contract change. Details in `ASSIGNMENTS.md` WP5.
+
+**Fixture principal ≠ demo principal.** `digest-vector.json` is signed by anvil key #0, so its `principal` is `0xf39F…2266`. The live mandate is signed by `0x214B…29c6`. Two different keys deliberately — one reproducible for tests, one holding revocation authority on stage. Conflating them makes `create` reject a valid signature and look like broken digest logic.
+
 ## Next action — two things, today, in this order
 
 1. **Start the faucets. Now, before anything else.** `faucet.monad.xyz`, **2-hour cooldown per token**, four addresses, one of them the principal's revocation key. The cooldown is the constraint — clicking takes a minute, waiting takes hours, and it gates Tuesday. This is the single highest-value thing that can happen in the next five minutes.

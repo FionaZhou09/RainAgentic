@@ -1,0 +1,46 @@
+{
+  "registry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "mandate": {
+    "principal": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "agent": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "purchaseRequestId": "0x5595019b872cc54431c55cd12f2886ead69e402988f11bcbad84946afe012c07",
+    "fundingSource": "0xb24dd820b6f7b7d554e637fd7bdbad6058e37dc4e958dc68b200ba54dedcdb13",
+    "maxTotal": "184000",
+    "autonomousMax": "20000",
+    "maxDepositBps": "3000",
+    "payeeScope": "0x420caba79df535a46a667266c1f58c80cfa1f34f170b33fd82b2930bdd5540f3",
+    "purpose": "Sourcing PR-1042: 600 heavyweight cotton T-shirts, 240gsm",
+    "validAfter": "1764547200",
+    "validUntil": "1772323200",
+    "nonce": "0xf77bb2058f26f87e4bce6b84a4c1d1f6ab16bd1521ea03e66108b93c9a44a819"
+  },
+  "expectedDigest": "0xaa01c2167148ec34cf58e069b6d048065aa81fd0607d0be002aee1e34bd68348",
+  "signature": "0x3cf6caaaad38e1f0518c6237b691456d56514defe93476ef2a3adfc1d618ca66154023b978d37fda62201c39a15fc0a139c36d21514aa1bfcc645a6ae7baa6751c",
+  "expectedSigner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "payeeRefs": [
+    "rain:payee:hanzhou-apparel",
+    "rain:payee:yuanfeng-textiles",
+    "rain:payee:rongcheng-garment"
+  ],
+  "expectedPayeeScope": "0x420caba79df535a46a667266c1f58c80cfa1f34f170b33fd82b2930bdd5540f3",
+  "expectedLeaves": [
+    "0x1d9cf1acb4f997efc2ec86866298c9b413668a5f7c152fec30e1a5acac5b7c23",
+    "0x99c2db6009e8d6f8deadf43cd4d67d1c1ac79d1081daa24c4f9a6542d6c5f39f",
+    "0xb00f303cd313bfd6c30fa8b81f28381ef4f5217b9b43bca75f4221cd6fbcb4d5"
+  ],
+  "tamperedMandate": {
+    "principal": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "agent": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "purchaseRequestId": "0x5595019b872cc54431c55cd12f2886ead69e402988f11bcbad84946afe012c07",
+    "fundingSource": "0xb24dd820b6f7b7d554e637fd7bdbad6058e37dc4e958dc68b200ba54dedcdb13",
+    "maxTotal": "1840000",
+    "autonomousMax": "20000",
+    "maxDepositBps": "3000",
+    "payeeScope": "0x420caba79df535a46a667266c1f58c80cfa1f34f170b33fd82b2930bdd5540f3",
+    "purpose": "Sourcing PR-1042: 600 heavyweight cotton T-shirts, 240gsm",
+    "validAfter": "1764547200",
+    "validUntil": "1772323200",
+    "nonce": "0xf77bb2058f26f87e4bce6b84a4c1d1f6ab16bd1521ea03e66108b93c9a44a819"
+  },
+  "tamperedField": "maxTotal"
+}
