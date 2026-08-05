@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ASSUMPTIONS, PR_1042, QUOTES, SUPPLIERS } from "@/lib/fixtures/pr-1042";
+import type { Rationale } from "@/lib/contracts/api";
 import { assessQuotes, type QuoteAssessment } from "@/lib/score";
 import { renderRationale } from "./rationale";
 
@@ -14,7 +15,8 @@ describe("renderRationale", () => {
       assumptions: [ASSUMPTIONS.dutyLabel, ASSUMPTIONS.fxNote],
     };
 
-    const first = JSON.stringify(renderRationale(input));
+    const canonical: Rationale = renderRationale(input);
+    const first = JSON.stringify(canonical);
     const second = JSON.stringify(renderRationale(input));
 
     expect(second).toBe(first);

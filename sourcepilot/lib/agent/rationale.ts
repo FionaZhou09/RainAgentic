@@ -1,12 +1,8 @@
 import type { RequiredQuoteField } from "@/lib/contracts/sourcing";
+import type { Rationale } from "@/lib/contracts/api";
 import type { QuoteAssessment } from "@/lib/score";
 
-export interface Rationale {
-  facts: string[];
-  assumptions: string[];
-  missingData: string[];
-  decision: string;
-}
+export type { Rationale } from "@/lib/contracts/api";
 
 export interface RationaleInput {
   assessment: QuoteAssessment;
