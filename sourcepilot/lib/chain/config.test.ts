@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { mandateDomain } from "@/lib/mandate";
 import { loadChainEnvironment } from "./config";
 
@@ -63,5 +65,39 @@ describe("loadChainEnvironment", () => {
       chainId: environment.chainId,
       verifyingContract: environment.registryAddress,
     });
+  });
+});
+
+describe("tracked environment example schema", () => {
+  it("covers check-env and runtime variables without containing private key values", () => {
+    const example = readFileSync(resolve(process.cwd(), ".env.secrets.local.example"), "utf8");
+    const checkEnvSource = readFileSync(resolve(process.cwd(), "../scripts/check-env.ts"), "utf8");
+    const values = new Map(
+      example
+        .split("\n")
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => {
+          const separator = line.indexOf("=");
+          return [line.slice(0, separator), line.slice(separator + 1)] as const;
+        }),
+    );
+    const checkEnvVariables = [
+      ...checkEnvSource.matchAll(/requireEnv\("([A-Z0-9_]+)"\)/g),
+    ].map((match) => match[1]);
+    const required = new Set([
+      ...checkEnvVariables,
+      "CHAIN_ID",
+      "CHAIN_RPC_URL",
+      "MANDATE_REGISTRY_ADDRESS",
+      "MONAD_TESTNET_RPC_URL_BACKUP_1",
+      "MONAD_TESTNET_RPC_URL_BACKUP_2",
+    ]);
+
+    expect([...required].filter((name) => !values.has(name))).toEqual([]);
+    expect(values.get("MONAD_TESTNET_RPC_URL")).toMatch(/^https:\/\//);
+    expect(values.get("MONAD_TESTNET_RPC_URL_BACKUP1")).toMatch(/^https:\/\//);
+    expect(values.get("MONAD_TESTNET_RPC_URL_BACKUP2")).toMatch(/^https:\/\//);
+    expect([...values.entries()].filter(([name, value]) => name.endsWith("PRIVATE_KEY") && value))
+      .toEqual([]);
   });
 });
