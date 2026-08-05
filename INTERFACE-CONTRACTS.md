@@ -18,6 +18,7 @@
 | 7 | D7 | §5.7 pipeline is normative; PRD §9 ordering is dead. |
 | 8 | Boss-approved amendment, 2026-08-05 | Removed `ConstraintPreview` and `previewConstraints`. `simulateRecord` is the only constraint preview, so local code cannot drift from Solidity enforcement. |
 | 9 | A2, boss-approved 2026-08-05 | Canonical mandate domain, hash, sign, and recovery helpers now require explicit `chainId` and `verifyingContract`. No implicit Monad default; RegistryClient uses the same helper. |
+| 10 | A3, boss-approved 2026-08-05 | Approval helpers use the same explicit domain; `SerializedApproval` canonically carries all six fields; `PayRequest.approvalNonce` propagates the signed nonce unchanged. |
 
 ---
 
@@ -258,8 +259,12 @@ export interface PaymentApproval {
   mandateHash: Bytes32; payeeHash: Bytes32;
   amount: bigint; poValue: bigint; stage: number; nonce: Bytes32;
 }
-export function hashApproval(a: PaymentApproval, registry: Address): Bytes32;
-export function recoverApprover(a: PaymentApproval, registry: Address, sig: Hex): Address;
+export type SerializedApproval = {
+  mandateHash: Bytes32; payeeHash: Bytes32;
+  amount: string; poValue: string; stage: number; nonce: Bytes32;
+};
+export function hashApproval(a: PaymentApproval, domain: MandateDomainConfig): Bytes32;
+export function recoverApprover(a: PaymentApproval, domain: MandateDomainConfig, sig: Hex): Address;
 
 ```
 
@@ -542,6 +547,7 @@ export interface PayRequest {
   amountMinor: number; stage: Stage;
   idempotencyKey: AttemptKey;  // D6: per attempt, uuid v4, from newAttemptKey()
   approvalSig?: Hex;           // required to complete a previously escalated payment
+  approvalNonce?: Bytes32;     // A3: required with approvalSig; passed unchanged to record
   materializeRevert?: boolean; // harness only, default false
 }
 

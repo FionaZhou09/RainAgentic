@@ -167,12 +167,12 @@ describe("hashApproval() — binds all SIX fields including poValue (D5)", () =>
   ];
 
   it.each(APPROVAL_MUTATIONS)("changing %s changes the approval digest", (_field, mutated) => {
-    expect(hashApproval(mutated, REGISTRY)).not.toBe(hashApproval(APPROVAL, REGISTRY));
+    expect(hashApproval(mutated, MONAD_DOMAIN)).not.toBe(hashApproval(APPROVAL, MONAD_DOMAIN));
   });
 
   it("poValue is genuinely covered — the D5 denominator cannot be swapped after signing", () => {
     const swapped = { ...APPROVAL, poValue: 986_000n };
-    expect(hashApproval(swapped, REGISTRY)).not.toBe(hashApproval(APPROVAL, REGISTRY));
+    expect(hashApproval(swapped, MONAD_DOMAIN)).not.toBe(hashApproval(APPROVAL, MONAD_DOMAIN));
   });
 
   it("recoverApprover round-trips to the signing address", async () => {
@@ -192,6 +192,23 @@ describe("hashApproval() — binds all SIX fields including poValue (D5)", () =>
       primaryType: "PaymentApproval",
       message: APPROVAL,
     });
-    expect(recoverApprover(APPROVAL, REGISTRY, sig)).toBe(PRINCIPAL);
+    expect(recoverApprover(APPROVAL, MONAD_DOMAIN, sig)).toBe(PRINCIPAL);
+  });
+
+  it("uses the explicit chain and registry for approval domain separation", () => {
+    const anvil = { chainId: 31337, verifyingContract: REGISTRY } as const;
+    expect(hashApproval(APPROVAL, anvil)).not.toBe(hashApproval(APPROVAL, MONAD_DOMAIN));
+    expect(hashApproval(APPROVAL, OTHER_MONAD_DOMAIN)).not.toBe(hashApproval(APPROVAL, MONAD_DOMAIN));
+  });
+
+  it("has no implicit approval domain", () => {
+    if (false) {
+      // @ts-expect-error A3 requires an explicit approval domain.
+      hashApproval(APPROVAL);
+      // @ts-expect-error A3 requires an explicit approval domain before the signature.
+      recoverApprover(APPROVAL, "0x");
+    }
+    expect(hashApproval.length).toBe(2);
+    expect(recoverApprover.length).toBe(3);
   });
 });

@@ -78,9 +78,9 @@ export function recoverMandateSigner(
   return recoverSigner(hashMandate(m, domain), sig);
 }
 
-export function hashApproval(a: PaymentApproval, registry: Address): Bytes32 {
+export function hashApproval(a: PaymentApproval, domain: MandateDomainConfig): Bytes32 {
   return hashTypedData({
-    domain: mandateDomain({ chainId: 10143, verifyingContract: registry }),
+    domain: mandateDomain(domain),
     types: APPROVAL_TYPES,
     primaryType: "PaymentApproval",
     message: a,
@@ -89,10 +89,10 @@ export function hashApproval(a: PaymentApproval, registry: Address): Bytes32 {
 
 export function recoverApprover(
   a: PaymentApproval,
-  registry: Address,
+  domain: MandateDomainConfig,
   sig: Hex,
 ): Address {
-  return recoverSigner(hashApproval(a, registry), sig);
+  return recoverSigner(hashApproval(a, domain), sig);
 }
 
 /** Synchronous ecrecover over an already-computed EIP-712 digest. */

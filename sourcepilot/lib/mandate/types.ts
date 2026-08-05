@@ -60,6 +60,15 @@ export interface PaymentApproval {
   amount: bigint; poValue: bigint; stage: number; nonce: Bytes32;
 }
 
+export type SerializedApproval = {
+  mandateHash: Bytes32;
+  payeeHash: Bytes32;
+  amount: string;
+  poValue: string;
+  stage: number;
+  nonce: Bytes32;
+};
+
 /** JSON-safe mandate: bigints as decimal strings (§7's convention). */
 export type SerializedMandate = {
   [K in keyof ProcurementMandate]: ProcurementMandate[K] extends bigint
