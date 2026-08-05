@@ -167,10 +167,20 @@ export async function runDemo() {
     const third = await harness.fireSample(3);
     const revocation = await harness.runRevocationCloser();
     harness.assertZeroRainCalls();
-    return { environment: "Local Anvil" as const, chainId: 31337 as const, copy: DEMO_COPY,
+    const evidence = { environment: "Local Anvil" as const, chainId: 31337 as const, copy: DEMO_COPY,
       mandateHash: arc.mandateHash, spentMinor: arc.spentMinor, arc, second, third, revocation,
       revokeCommand: harness.printRevokeCommand() };
+    return sanitizePresentation(evidence, 31337);
   } finally { await harness.stop(); }
+}
+
+function sanitizePresentation(value: unknown, chainId: 31337 | 10143): unknown {
+  if (Array.isArray(value)) return value.map((item) => sanitizePresentation(item, chainId));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+    chainId === 31337 && key === "monadTxHash" ? "localTxHash" : key,
+    sanitizePresentation(item, chainId),
+  ]));
 }
 
 async function main() { console.log(JSON.stringify(await runDemo(), (_, value) => typeof value === "bigint" ? value.toString() : value, 2)); }

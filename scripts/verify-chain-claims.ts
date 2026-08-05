@@ -21,6 +21,7 @@ const BANNED = [
 ];
 
 function evidencePath(path: string): boolean { return /(?:^|\/)(?:output|evidence)(?:\/|$)|evidence\.json$/i.test(path); }
+function presentationPath(path: string): boolean { return evidencePath(path) || /scripts\/harness-output$|sourcepilot\/(?:app|components)\//i.test(path); }
 function stripComments(content: string): string { return content.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); }
 function fail(path: string, message: string): never { throw new Error(`${path}: ${message}`); }
 
@@ -37,6 +38,9 @@ export function verifyChainClaims(input: ClaimInput): void {
     for (const pattern of BANNED) if (pattern.test(content)) fail(source.path, `banned governed claim ${pattern}`);
 
     if (input.chainId === 31337) {
+      if (presentationPath(source.path) && /monad(?:TxHash|Transaction)[^\n]*0x[0-9a-fA-F]{64}/i.test(content)) {
+        fail(source.path, "Monad-specific transaction identifier cannot present Local Anvil evidence");
+      }
       if (/deployed on Monad/i.test(content)) fail(source.path, "Local Anvil output claims deployment on Monad");
       if (/Monad transaction/i.test(content)) fail(source.path, "Local Anvil output claims a Monad transaction");
       if (/testnet\.monadvision\.com\/tx\//i.test(content)) fail(source.path, "Local Anvil output contains a Monad explorer transaction link");

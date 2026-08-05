@@ -26,6 +26,23 @@ describe("chain-claim verifier mutations", () => {
     expect(() => verifyChainClaims(local(`Local Anvil transaction hash: 0x${"a".repeat(64)}`, path))).not.toThrow();
   });
 
+  it.each([
+    `Local Anvil monadTxHash: 0x${"a".repeat(64)}`,
+    JSON.stringify({ environment: "Local Anvil", monadTxHash: `0x${"a".repeat(64)}` }),
+    JSON.stringify({ environment: "Local Anvil", monadTransaction: `0x${"a".repeat(64)}` }),
+    `const monadTransaction = "0x${"a".repeat(64)}"`,
+  ])("rejects Monad-specific 31337 presentation identifiers: %s", (mutation) => {
+    expect(() => verifyChainClaims(local(mutation, "scripts/harness-output"))).toThrow(/Monad|Local Anvil/i);
+    expect(() => verifyChainClaims(local(mutation, "sourcepilot/app/page.tsx"))).toThrow(/Monad|Local Anvil/i);
+  });
+
+  it.each([
+    `Local Anvil localTxHash: 0x${"a".repeat(64)}`,
+    JSON.stringify({ environment: "Local Anvil", transactionHash: `0x${"a".repeat(64)}` }),
+  ])("permits explicitly local 31337 presentation: %s", (presentation) => {
+    expect(() => verifyChainClaims(local(presentation, "scripts/harness-output"))).not.toThrow();
+  });
+
   it("rejects every governed banned string", () => {
     for (const mutation of [
       "replay the same request",

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createDemoHarness, type DemoHarness, type HarnessRecord } from "./harness";
+import { createDemoHarness, runDemo, type DemoHarness, type HarnessRecord } from "./harness";
 
 const active: DemoHarness[] = [];
 
@@ -98,5 +98,12 @@ describe("cold-start real-Anvil demo harness", () => {
     await harness.stop();
     expect(harness.stopped).toBe(true);
     await expect(fetch(harness.rpcUrl)).rejects.toThrow();
+  }, 30_000);
+
+  it("renders Local Anvil transaction evidence without Monad presentation keys", async () => {
+    const rendered = JSON.stringify(await runDemo(), (_, value) => typeof value === "bigint" ? value.toString() : value);
+    expect(rendered).not.toMatch(/monadTxHash|monadTransaction/i);
+    expect(rendered).toMatch(/localTxHash|transactionHash/);
+    expect(rendered).toContain('"environment":"Local Anvil"');
   }, 30_000);
 });
