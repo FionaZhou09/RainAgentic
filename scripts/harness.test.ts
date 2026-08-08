@@ -39,6 +39,32 @@ describe("cold-start real-Anvil demo harness", () => {
     expect(approved.outcome).toBe("approved");
   }, 30_000);
 
+  it("submits the changed-payee deposit with its own signed approval and fresh attempt", async () => {
+    const harness = await createDemoHarness();
+    active.push(harness);
+    const arc = await harness.runLockedArc();
+    const [pending, approved] = arc[1].records;
+    const fraud = arc[2].records.at(-1);
+
+    expect(fraud).toMatchObject({
+      amountMinor: 147_900,
+      stage: "deposit",
+      outcome: "blocked",
+      layer: "onchain",
+      reason: "PayeeOutOfScope",
+      rainCalls: 0,
+      mandateHash: arc.mandateHash,
+    });
+    expect(fraud?.approvalNonce).toMatch(/^0x[0-9a-fA-F]{64}$/);
+    expect(fraud?.approvalNonce).not.toBe(pending.approvalNonce);
+    expect(fraud?.approvalNonce).not.toBe(approved.approvalNonce);
+    expect(fraud?.attemptKey).not.toBe(pending.attemptKey);
+    expect(fraud?.attemptKey).not.toBe(approved.attemptKey);
+    expect(new Set(arc.flatMap((beat) => beat.records.map((record) => record.attemptKey))).size)
+      .toBe(arc.flatMap((beat) => beat.records).length);
+    expect(arc.spentMinor).toBe(165_900n);
+  }, 30_000);
+
   it("demonstrates D3 on-chain ceiling exhaustion after the locked arc", async () => {
     const harness = await createDemoHarness();
     active.push(harness);

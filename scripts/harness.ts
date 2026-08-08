@@ -11,7 +11,7 @@ import { evaluatePayment, type PayContext, type PayResponse } from "../sourcepil
 import { DEMO_COPY } from "../sourcepilot/lib/contracts/copy";
 import { createEventStore } from "../sourcepilot/lib/events";
 import { ASSUMPTIONS, FRAUD_PAYEE_REF, MANDATE_FIXTURE, PAYEE_REFS, PR_1042, QUOTE_B, SUPPLIERS } from "../sourcepilot/lib/fixtures/pr-1042";
-import { computePayeeScope, type PaymentApproval, type ProcurementMandate } from "../sourcepilot/lib/mandate";
+import { computePayeeScope, hashPayeeRef, type PaymentApproval, type ProcurementMandate } from "../sourcepilot/lib/mandate";
 import { MockRainAdapterImpl } from "../sourcepilot/lib/rain/mock";
 import { newAttemptKey, type AttemptKey } from "../sourcepilot/lib/rain/port";
 import { assessQuotes } from "../sourcepilot/lib/score";
@@ -22,7 +22,8 @@ const REVOKE_ABI = parseAbi(["function revoke(bytes32 mandateHash)"]);
 
 export type HarnessRecord = {
   environment: "Local Anvil"; chainId: 31337; outcome: PayResponse["outcome"];
-  amountMinor: number; attemptKey: AttemptKey; approvalNonce?: Hex; reason?: string;
+  amountMinor: number; stage: "sample" | "deposit"; attemptKey: AttemptKey; approvalNonce?: Hex; reason?: string;
+  layer?: "offchain" | "onchain";
   transactionHash?: Hex; remainingMinor?: string; rainCalls: number; copy: string; mandateHash: Hex;
 };
 export type HarnessBeat = { beat: "autonomous_sample" | "escalation" | "changed_payee"; records: HarnessRecord[] };
@@ -41,10 +42,11 @@ export interface DemoHarness {
 
 type Track = { context: PayContext; rain: MockRainAdapterImpl; registry: RegistryClient; mandateHash: Hex };
 
-function record(track: Track, response: PayResponse, amountMinor: number, key: AttemptKey, rainBefore: number, approvalNonce?: Hex): HarnessRecord {
+function record(track: Track, response: PayResponse, amountMinor: number, stage: "sample" | "deposit", key: AttemptKey, rainBefore: number, approvalNonce?: Hex): HarnessRecord {
   const recordedNonce = response.outcome === "pending_approval" ? response.approvalPayload.nonce : approvalNonce;
-  return { environment: "Local Anvil", chainId: 31337, outcome: response.outcome, amountMinor, attemptKey: key,
+  return { environment: "Local Anvil", chainId: 31337, outcome: response.outcome, amountMinor, stage, attemptKey: key,
     approvalNonce: recordedNonce, reason: response.outcome === "blocked" ? response.reason : undefined,
+    layer: response.outcome === "blocked" ? response.layer : undefined,
     transactionHash: "transactionHash" in response ? response.transactionHash ?? undefined : undefined,
     remainingMinor: "remainingMinor" in response ? response.remainingMinor : undefined,
     rainCalls: track.rain.calls.length - rainBefore, copy: DEMO_COPY.enforcementClaim, mandateHash: track.mandateHash };
@@ -98,7 +100,7 @@ export async function createDemoHarness(): Promise<DemoHarness> {
       const before = track.rain.calls.length;
       const response = await evaluatePayment({ purchaseRequestId: PR_1042.id, supplierId: "SUP-B", payeeRef: SUPPLIERS[1].payeeRef,
         amountMinor, stage, idempotencyKey, ...overrides }, track.context);
-      return { response, output: record(track, response, amountMinor, idempotencyKey, before, overrides.approvalNonce), key: idempotencyKey };
+      return { response, output: record(track, response, amountMinor, stage, idempotencyKey, before, overrides.approvalNonce), key: idempotencyKey };
     }
 
     async function approve(track: Track, amountMinor: number) {
@@ -118,7 +120,21 @@ export async function createDemoHarness(): Promise<DemoHarness> {
         if (arc) return arc;
         const sample = await pay(locked, 18_000, "sample");
         const escalation = await approve(locked, 147_900);
-        const fraud = await pay(locked, 18_000, "sample", { payeeRef: FRAUD_PAYEE_REF });
+        const fraudApproval: PaymentApproval = {
+          mandateHash: locked.mandateHash,
+          payeeHash: hashPayeeRef(FRAUD_PAYEE_REF),
+          amount: 147_900n,
+          poValue: 493_000n,
+          stage: STAGE.deposit,
+          nonce: keccak256(toHex("SP-07 changed-payee approval")),
+        };
+        const fraudApprovalSig = await signApprovalWithWallet(principalWallet, principal, fraudApproval, domain);
+        const fraud = await pay(locked, 147_900, "deposit", {
+          payeeRef: FRAUD_PAYEE_REF,
+          approvalSig: fraudApprovalSig,
+          approvalNonce: fraudApproval.nonce,
+          idempotencyKey: newAttemptKey(),
+        });
         blockedRecords.push(fraud.output);
         const beats: HarnessBeat[] = [
           { beat: "autonomous_sample", records: [sample.output] },
