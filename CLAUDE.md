@@ -4,14 +4,15 @@ You are the **implementation engineer**. A manager runs in a separate window and
 
 ## Authority order — higher wins when two documents disagree
 
-1. `BOSS-DECISIONS.md` · `BOSS-DECISIONS-R2.md` — rulings D0–D8, R1–R4. **Override everything, including the PRD.**
+1. `docs/decisions/BOSS-DECISIONS.md` · `docs/decisions/BOSS-DECISIONS-R2.md` — rulings D0–D8, R1–R4. **Override everything, including the PRD.**
 2. `INTERFACE-CONTRACTS.md` — **FROZEN.** TS types and Solidity signatures.
-3. `SCHEDULE-V2.md` — day plan and gates.
-4. `ASSIGNMENTS.md` — your briefs. §0 discipline, §1 day plan, §2 per-package detail.
-5. `EXECUTION-PLAN.md` — §1, §2, §6 live. §3–§5 superseded.
-6. `SourcePilot-PRD-v2.md` — the spec, **but §7 and §9 are dead** (see D0 and D7).
+3. `SCOPE-NOW.md` — **what actually ships.** Three demo beats, one live screen, the cut list. Supersedes the PRD's scope and every hour estimate written before Friday.
+4. `docs/ASSIGNMENTS.md` — your briefs. §0 discipline, §2 per-package detail. **WP5, WP6 and WP8 are the live ones.**
+5. `SourcePilot-PRD-v2.md` — the spec, **but §7 and §9 are dead** (see D0 and D7) and its scope is superseded by `SCOPE-NOW.md`.
 
-`README.md` explains all of it. `STATUS.md` is current state.
+`README.md` explains all of it. `STATUS.md` is current state. `DEMO-DAY-CARD.md` is the stage.
+
+**`archive/` is retired. Nothing there is live — do not build against it.** `archive/INDEX.md` says why each file was retired.
 
 ## Do not
 
@@ -20,8 +21,10 @@ You are the **implementation engineer**. A manager runs in a separate window and
 - **Derive an idempotency key from payment content.** It must be a per-attempt UUID from `newAttemptKey()`. A content-derived key makes the revocation demo show "paid" instead of "reverted" — the single most damaging possible failure.
 - **Add payee scope, amount, deposit, expiry, or revocation to the off-chain pre-checks.** Those five belong to the contract. Pre-empting any of them makes "the contract reverted" false on stage.
 - **Install wagmi.** Deleted by ruling D4. viem only.
-- **Edit any `.md` file at the repository root.** Report instead.
+- **Edit any `.md` file at the repository root.** Report instead. (The owner may reorganize them; you may not.)
 - Add x402, ERC-8004, FX handling, PDF parsing, a duty engine, or a third screen. All cut, deliberately.
+- **Build `/compare` as a live screen, the escalation beat, or WP7's LLM rationale.** All cut Friday — `SCOPE-NOW.md` §4. `/approve` is the only live screen.
+- **Build `previewConstraints()`.** Recommended for removal; `simulateRecord` already returns the contract's real revert reason, and two implementations of one ruleset drift.
 
 ## Always
 

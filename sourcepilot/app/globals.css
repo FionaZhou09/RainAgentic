@@ -1,26 +1,386 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------
+   SourcePilot design tokens — dark, high-contrast operations console
+   --------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base surfaces */
+  --background: #05070a;
+  --surface-0: #0a0e14;
+  --surface-1: #0e131b;
+  --surface-2: #131a24;
+
+  /* Text */
+  --foreground: #e8edf4;
+  --muted: #9aa9be;
+  --faint: #8a9cb5;
+
+  /* Hairlines */
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+
+  /* Brand + semantic accents */
+  --accent: #d9ff55;
+  --accent-ink: #0a1005;
+  --positive: #4ade80;
+  --positive-dim: rgba(74, 222, 128, 0.12);
+  --blocked: #fb7185;
+  --blocked-dim: rgba(251, 113, 133, 0.12);
+  --caution: #fbbf24;
+  --caution-dim: rgba(251, 191, 36, 0.1);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-positive: var(--positive);
+  --color-blocked: var(--blocked);
+  --color-caution: var(--caution);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--line);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(900px 520px at 12% -8%, rgba(217, 255, 85, 0.09), transparent 62%),
+    radial-gradient(760px 480px at 96% 4%, rgba(56, 189, 248, 0.08), transparent 60%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Reusable composites -------------------------------------------------- */
+
+.panel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  border: 1px solid var(--line);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 24px 60px -28px rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(14px);
+}
+
+.panel-lift {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.panel-lift:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+    0 34px 72px -30px rgba(0, 0, 0, 1);
+}
+
+.panel-accent {
+  border-color: rgba(217, 255, 85, 0.42);
+  box-shadow:
+    0 1px 0 0 rgba(217, 255, 85, 0.16) inset,
+    0 0 0 1px rgba(217, 255, 85, 0.08),
+    0 30px 70px -30px rgba(217, 255, 85, 0.28);
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.hairline {
+  border-bottom: 1px solid var(--line);
+}
+
+.pulse-dot {
+  position: relative;
+}
+
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.28;
+  animation: sp-pulse 2.4s ease-out infinite;
+}
+
+@keyframes sp-pulse {
+  0% { transform: scale(0.6); opacity: 0.45; }
+  70% { transform: scale(1.9); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.rise {
+  animation: sp-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sp-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .pulse-dot::after { animation: none; }
+  .panel-lift:hover { transform: none; }
+}
+
+code, .mono {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-variant-ligatures: none;
+}
+
+::selection {
+  background: rgba(217, 255, 85, 0.28);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); background-clip: content-box; }
+
+/* ---------------------------------------------------------------
+   Depth layer — aurora, grain, gradient borders, meters
+   --------------------------------------------------------------- */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(38rem 28rem at 18% 12%, rgba(217, 255, 85, 0.13), transparent 60%),
+    radial-gradient(34rem 26rem at 82% 22%, rgba(56, 189, 248, 0.13), transparent 60%),
+    radial-gradient(30rem 24rem at 55% 88%, rgba(168, 85, 247, 0.10), transparent 62%);
+  filter: blur(28px);
+  animation: sp-aurora 26s ease-in-out infinite alternate;
+}
+
+@keyframes sp-aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2.5%, -2%, 0) scale(1.06); }
+  100% { transform: translate3d(-2%, 2.5%, 0) scale(1.02); }
+}
+
+/* Fine grain so the large dark fields don't band */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Rotating conic ring on the recommended supplier */
+.ring-accent {
+  position: relative;
+  isolation: isolate;
+}
+
+.ring-accent::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--ring-angle, 0deg),
+    rgba(217, 255, 85, 0.9),
+    rgba(56, 189, 248, 0.55),
+    rgba(217, 255, 85, 0.12),
+    rgba(217, 255, 85, 0.9)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: sp-spin 7s linear infinite;
+}
+
+@property --ring-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes sp-spin {
+  to { --ring-angle: 360deg; }
+}
+
+/* Display type with a light gradient wash */
+.display-grad {
+  background: linear-gradient(180deg, #ffffff 30%, #b7c4d6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Constraint meters ------------------------------------------------ */
+
+.meter {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.meter > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transform-origin: left center;
+  animation: sp-fill 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.meter-ok   > i { background: linear-gradient(90deg, #4ade80, #a3e635); }
+.meter-edge > i { background: linear-gradient(90deg, #a3e635, #d9ff55); box-shadow: 0 0 12px rgba(217,255,85,.55); }
+.meter-bad  > i { background: linear-gradient(90deg, #fb7185, #f43f5e); }
+
+@keyframes sp-fill {
+  from { transform: scaleX(0); }
+}
+
+/* Segmented ceiling bar */
+.ceiling {
+  display: flex;
+  height: 10px;
+  gap: 2px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ceiling > span {
+  display: block;
+  animation: sp-fill 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  .ring-accent::before { animation: none; }
+  .meter > i, .ceiling > span { animation: none; }
+}
+
+/* ---------------------------------------------------------------
+   Iridescent orb — soap-bubble artwork, CSS only
+   --------------------------------------------------------------- */
+
+.orb {
+  filter: blur(0.2px) saturate(130%);
+  opacity: 0.55;
+  z-index: -1;
+}
+
+.orb-shell {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  mix-blend-mode: screen;
+}
+
+.orb-a {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 26%),
+    conic-gradient(
+      from 210deg,
+      rgba(217, 255, 85, 0.55),
+      rgba(56, 189, 248, 0.5),
+      rgba(168, 85, 247, 0.45),
+      rgba(251, 191, 36, 0.4),
+      rgba(217, 255, 85, 0.55)
+    );
+  box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.16), 0 0 90px rgba(217, 255, 85, 0.14);
+  animation: sp-orb 22s ease-in-out infinite alternate;
+}
+
+.orb-b {
+  inset: 14%;
+  background: conic-gradient(
+    from 40deg,
+    rgba(56, 189, 248, 0.4),
+    rgba(217, 255, 85, 0.34),
+    rgba(168, 85, 247, 0.4),
+    rgba(56, 189, 248, 0.4)
+  );
+  filter: blur(6px);
+  animation: sp-orb 17s ease-in-out infinite alternate-reverse;
+}
+
+.orb-c {
+  inset: 32%;
+  background: radial-gradient(circle at 40% 34%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 62%);
+  filter: blur(2px);
+  animation: sp-orb 13s ease-in-out infinite alternate;
+}
+
+@keyframes sp-orb {
+  0%   { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate3d(-3%, 4%, 0) scale(1.07) rotate(28deg); }
+}
+
+/* Pill navigation, per the reference set */
+.pill-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+}
+
+.pill-nav a {
+  border-radius: 9999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.pill-nav a:hover { color: var(--foreground); background: rgba(255, 255, 255, 0.06); }
+
+.pill-nav a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 650;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-shell { animation: none; }
 }

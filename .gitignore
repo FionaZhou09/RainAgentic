@@ -27,3 +27,7 @@ sourcepilot/drizzle/*.db
 .DS_Store
 *.log
 coverage/
+
+# local scratch
+.uibuild/
+.claude/

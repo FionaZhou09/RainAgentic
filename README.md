@@ -1,128 +1,134 @@
-# SourcePilot AI — project record
+# SourcePilot AI
 
-**Rain × Monad hackathon, NYC.** Last updated Monday 2026-08-03, end of day.
+**A procurement agent that spends company money inside a limit its owner signed cryptographically — enforced on-chain, revocable in one transaction.**
 
-> **New here, or coming back after a gap? Read this file, then `STATUS.md`. That's enough to act.**
+Rain × Monad hackathon, NYC.
 
----
-
-## 1. What we're building
-
-**SourcePilot AI** — a procurement agent that analyzes supplier quotes and spends company money inside a limit its owner signed cryptographically, enforced on-chain, revocable in one transaction.
-
-The core primitive is a **Procurement Mandate**: an EIP-712 object the founder signs once (payment ceiling, per-transaction autonomous ceiling, max deposit bps, approved-payee scope, validity window, nonce). It's registered in a Monad contract that tracks cumulative spend in on-chain state and **reverts** on any payment that is over-limit, out-of-scope, expired, or revoked. `/api/pay` calls the contract *before* it calls Rain.
-
-**The test the design must keep passing:** *what breaks if you delete the server's call to the contract?* The answer must be "the payment loses its authorization and the ceiling stops decrementing." If it ever becomes "nothing," the Monad integration has regressed to an audit log and the bounty argument is gone.
-
-**Demo arc (locked):** pre-signed mandate from a prior session → analysis declines the cheapest supplier on a *term*, not a price → $180 sample executes autonomously with the on-chain ceiling decrementing → $1,479 deposit escalates → the same amount to a changed bank account is refused before any API call → **revoke, retry the $180 that succeeded 90 seconds ago, it reverts.**
+**Live demo:** https://rain-agentic-sourcepilot.vercel.app
+**Registry contract:** [`0x9553c581d747107b2f63f9655b32153e2bfcdbf1`](https://testnet.monadvision.com/address/0x9553c581d747107b2f63f9655b32153e2bfcdbf1) · Monad Testnet, chain 10143
 
 ---
 
-## 2. Documents, and which one wins
+## The problem
 
-When two documents disagree, **higher in this table wins.** This ordering exists because the PRD is superseded in two specific places and a subagent reading the wrong file would rebuild a known bug.
+Give an AI agent a corporate card and you have two bad options. Let it spend freely and you're trusting a model with your bank account. Make a human approve everything and you don't have an agent, you have a form.
 
-| Authority | File | What it is |
+SourcePilot takes a third path: the founder signs **one** EIP-712 object — a **Procurement Mandate** — that states exactly what the agent may do.
+
+| Field | This demo |
+|---|---|
+| Cumulative spending ceiling | $1,840.00 |
+| Per-payment autonomous ceiling | $200.00 |
+| Max deposit ratio | 30% of PO value |
+| Approved payee scope | commitment over three suppliers |
+| Validity window | 90 days |
+
+That mandate is registered in a Monad contract that holds cumulative spend as **on-chain state**. Every payment calls `record()` **before** the payment processor is touched. Over the ceiling, outside the payee scope, expired, or revoked — the contract reverts and no payment happens.
+
+**The test this design has to keep passing:** *what breaks if you delete the server's call to the contract?* The answer must be "the payment loses its authorization and the ceiling stops decrementing." If it were ever "nothing," the chain would have regressed to an audit log.
+
+---
+
+## Proof on Monad Testnet
+
+Not a diagram. These are public transactions you can open right now.
+
+| Event | Transaction | Result |
 |---|---|---|
-| 1 | `BOSS-DECISIONS.md` · `BOSS-DECISIONS-R2.md` | **The rulings. D0–D8 and R1–R4. These override everything, including the PRD.** |
-| 2 | `INTERFACE-CONTRACTS.md` | **Frozen v1.0.** TS types and Solidity signatures. Supersedes `EXECUTION-PLAN.md` §5 and PRD §7 (D0) and §9 (D7). No agent may change a signature. |
-| 3 | `SCHEDULE-V2.md` | The five-day day plan and its binary gates. Supersedes `EXECUTION-PLAN.md` §3–§4. |
-| 4 | `ASSIGNMENTS.md` | Staffing model, per-package briefs, dispatch log. |
-| 5 | `EXECUTION-PLAN.md` | The approved plan. §1 assumption check, §2 breakdown, §6 kill list still govern. §3–§5 superseded. |
-| 6 | `SourcePilot-PRD-v2.md` | The spec. **§7's contract signature and §9's pipeline ordering are dead** — see D0 and D7. |
-| — | `STATUS.md` | Current state. Updated at every gate. Read instead of asking. |
-| — | `BUILD-HANDOFF.md` | How the terminal build window gets bootstrapped. |
-| — | `CLAUDE.md` | **Auto-loaded by Claude Code every session.** Pins the authority order and the four things that must never be rebuilt. This is what stops session-to-session drift across a five-day build. |
-| — | `MANAGER-PROMPT.md` | The manager's operating brief: authority boundary, locked decisions, verified data, ten traps. |
-| — | `NEW-WINDOW-PROMPT.md` | Bootstrap for a fresh manager window. **Rewritten Monday** — the round-1 version asked for the interface contracts as a first deliverable, which would now produce a duplicate that drifts from the frozen file. |
-| — | `01-project-ideas.md` · `02-technical-prep-brief.md` · `03-demo-pitch-template.md` | Reference: why this project over five alternatives · network facts and version traps · weekend timeline and judge Q&A. **`03` is needed Sunday** — don't lose it. |
-| — | `archive/` | Superseded documents, kept for the record. Nothing here is live. |
+| Registry deployed | [`0x4fba…4a41`](https://testnet.monadvision.com/tx/0x4fba0104a66f37f6c5c398dbaf892395b50c6813954472c61c47333999234a41) | block 52019868 |
+| Mandate created | [`0x6883…1688`](https://testnet.monadvision.com/tx/0x688355e83335d003b92f5137d31bb69da815dccde398ee318e460a1654ab1688) | digest recomputed on-chain from all twelve signed fields |
+| $180 sample recorded | [`0xb690…f098`](https://testnet.monadvision.com/tx/0xb69095e0c11d59cda4105cfaf43aaa789da3fba927d3e9e7c4d6f3f0ceb6f098) | `spent` 18000 → remaining **166000** |
+| Mandate revoked | [`0x48b5…3ded`](https://testnet.monadvision.com/tx/0x48b52e7b4b75cc631e3b37f4844fb606d975801a95fc06f9f94928805c393ded) | every subsequent payment reverts `Revoked` |
 
-**Every file at the top level is live.** If it's superseded, it's in `archive/`. That rule is what stops an agent building against a dead spec.
+Principal `0x214B1e3E38453582Ea1d078c080ec1781C5c29c6` · Agent `0x0e781C29530d33657b9cA8c0A8263F5d75d5DbD4`
 
 ---
 
-## 3. Decision history
+## The demo, in three beats
 
-### Round 1 — plan approved with rulings (`BOSS-DECISIONS.md`)
+**1. The agent declines the cheapest supplier — on a term, not a price.**
+Three quotes for 600 heavyweight cotton T-shirts. Rongcheng Garment is genuinely cheapest per unit and is refused anyway: it never stated shipping (landed cost unquotable), its lead time is 70 days against a 60-day deadline, spec match is 87% against a 90% floor, and it wants a 100% deposit against a 30% cap. Yuanfeng dies on its deposit alone. Hanzhou Apparel wins at a deposit of *exactly* 3000 bps — the boundary case, deliberately pinned.
 
-| ID | Ruling |
+Price alone cannot eliminate a supplier here. `LANDED_OVER_BUDGET` isn't in the failure union, so it's a compile error rather than a code-review catch. The $12.00/unit landed budget is informational and labeled as such.
+
+**2. A payment to a changed bank account is refused by the contract — before any payment API call.**
+Same supplier, same amount, one different payee reference. The contract reverts `PayeeOutOfScope`. The network panel stays empty: zero calls to the payment processor. This is the beat that separates enforcement from logging.
+
+**3. Revoke, then retry a payment that succeeded ninety seconds ago.**
+One `cast send` from the principal's key. The $180 payment that worked a minute earlier now reverts `Revoked`. Nothing was redeployed and no server restarted.
+
+---
+
+## What is enforced, and what is not
+
+Being precise here matters more than sounding impressive.
+
+**Enforced by the contract**, and it reverts on each: the cumulative ceiling · the approved-payee scope · the validity window · revocation · the deposit cap, verified against a `PaymentApproval` signature checked **on-chain**, so the PO value the ratio is measured against is one the founder signed rather than one the server asserted.
+
+**Not enforced, and we won't claim otherwise:** no contract can check whether that signed PO value matches the real invoice. That's the remaining seam. We'd rather name it than have you find it.
+
+**Rain is simulated.** Card issuance and settlement run through `MockRainAdapter`. There is **no live card issuance, authorization, or settlement** in this build — credentials were access-gated until the event. Simulated UI states are labeled `SIMULATED DISPLAY FIXTURE` on screen. The mock is shaped against Rain's documented field names and minor-unit conventions, and the enforcement pipeline in front of it is real: on the blocked beats, `MockRainAdapter.calls = 0`, asserted two independent ways.
+
+---
+
+## Verification
+
+| Gate | Result |
 |---|---|
-| **D0** | The PRD §7 contract bug is a **P0**. Recompute the EIP-712 digest on-chain from all twelve signed fields; `mandateHash` becomes a return value, never an input. 45 minutes authorized. |
-| **D1** | Landed budget **$12.00/unit**, and the per-unit figure is **informational, not an elimination gate**. Removes tariff policy from the critical path entirely. |
-| **D2** | Don't build `LiveRainAdapter`. Credentials Saturday 9 AM mandatory; shape the mock against the real API; one 30-minute authenticated round-trip after the Saturday checkpoint if green. |
-| **D3** | `maxTotal` = **$1,840**. The ceiling binds across transactions and the agent halts itself — the non-circular answer to "why an agent at all?" |
-| **D4** | `cast send` for revocation, and **delete wagmi entirely.** Capture the wallet's rendered EIP-712 terms as a Friday screen-recording instead of signing live. |
-| **D5** | PO-value staging approved. Mandatory language discipline: never claim the contract enforces the deposit cap unqualified. |
-| **D6** | Three script wordings ratified. **Idempotency keys are per-attempt UUIDs** — a content-derived key inverts the revocation closer. |
-| **D7** | The §5.7 pipeline contract supersedes PRD §9. |
-| **D8** | WP6 is protected and does not absorb slip. |
+| TypeScript test suite | **206 passed** across 20 files |
+| Foundry contract tests | **24 passed**, including all ten named enforcement tests |
+| Typecheck | `tsc --noEmit`, exit 0 |
+| Production build | `/`, `/compare`, `/approve` and four API routes |
+| Demo harness | six outcomes in order; zero processor calls on every blocked beat |
+| Browser QA | desktop 1440×900, mobile 390×844, projector 1280×720 — no overflow at any width |
 
-### Round 2 — contracts frozen with redlines (`BOSS-DECISIONS-R2.md`)
-
-| ID | Ruling |
-|---|---|
-| **R1** | Schedule v2 ratified — five-day build, Friday-night freeze. **D8's scheduling protection is moot; its two hard requirements are not.** Scope control made structural: an agent that finishes early **stops**. |
-| **R2** | §5 and §7 frozen, **two redlines**. *Redline 1:* `mandateExpiryLabel` was false against a signed field — now "Expires in ninety days", old wording banned. *Redline 2:* §7 step 4 is not a demo beat; one blocked-by-contract beat only, and it stays the changed payee. |
-| **R3** | Both TDD exemptions granted — WP0 in full, WP6 partial. Correction applied: WP6's visual criteria go to **captured screenshots**, not a human-eye pass. |
-| **R4** | Take option (b) — on-chain `PaymentApproval` verification, built Wednesday. New stage sentence ratified. `DEMO_COPY.enforcementClaim` is now **two-state**, driven by the `APPROVAL_ONCHAIN_VERIFY` flag, with WP9 asserting the string matches the flag. |
-
-### Monday's two field decisions
-
-- **Pre-building eligibility: WAIVED, not verified.** No written source exists; the claim originated as an option in a manager-authored question and was ratified. Recorded in `STATUS.md` as a decision, deliberately not as a verification. Residual risk is git-history timestamps, all-or-nothing, unmitigated. Fallback if it ever fires: `EXECUTION-PLAN.md` §4's original weekend schedule, intact.
-- **Build environment moved to a terminal.** WP0 came back `BLOCKED` — the Cowork sandbox has no `pnpm`, no Foundry, and no network to npm, GitHub, or any Monad RPC. Independently verified. Implementation now runs in Claude Code on the local machine; the Cowork window remains the manager. This restores the intended split — the manager was never meant to write production code.
+Full evidence, including nine captured screenshots: [`output/playwright/FINAL-QA-REPORT.md`](output/playwright/FINAL-QA-REPORT.md). On-chain record: [`output/monad/deployment.json`](output/monad/deployment.json).
 
 ---
 
-## 4. Where things stand
+## Running it
 
-**Nothing is built.** `sourcepilot/` is empty. The dispatch log has one row: WP0, `BLOCKED`, environment.
+All commands run from the repository root.
 
-**What is done** — and it is the part that's hard to redo: the assumption check that found three demo-breaking defects, the frozen interface contracts, thirteen rulings applied, nine package briefs with runnable done-criteria, and the schedule. All of it is toolchain-independent and carries over unchanged.
+```bash
+pnpm install
 
-**Three defects caught before any code existed:**
+CHAIN_ID=10143 pnpm dev    # http://localhost:3000 → /compare
+pnpm test                  # 206 tests
+pnpm demo:all              # the three beats, end to end
+pnpm verify:claims         # re-checks every on-chain claim above against Monad
 
-1. `create` as specified couldn't verify the signature — the server could pair a genuine signature with constraints the founder never agreed to (D0)
-2. A content-derived idempotency key would make the revocation closer show **"paid"** instead of "reverted" (D6)
-3. Off-chain pre-checks would steal the blocked beat from the contract, making "the contract reverted" false on stage (D7)
+forge test --root sourcepilot/contracts    # 24 contract tests
+```
 
-**Where possible, rulings became structure rather than notes.** Price can't eliminate a supplier because `LANDED_OVER_BUDGET` isn't in the failure union. An idempotency key can't be content-derived because `newAttemptKey()` takes no arguments. The server can't revoke because `revoke` isn't on the client. Each is a compile error rather than a code-review catch.
-
----
-
-## 5. The week
-
-| Day | Packages | Gate |
-|---|---|---|
-| **Mon** | WP0 scaffold + **faucets** | `pnpm build`, `forge test`, `git check-ignore .env.local`, `check-env` — all exit 0 |
-| **Tue** | WP2 (critical path) · WP1 · WP4 | `pnpm test` green; `digest-vector.json` contains `tamperedMandate` |
-| **Wed** | WP3 (critical path) · WP7 | `forge test` on **ten** named tests; deployed to testnet. **Manager decides `APPROVAL_ONCHAIN_VERIFY` here.** |
-| **Thu** | WP5 (critical path) · WP6 starts | `pnpm demo:all` — four outcomes in order, zero Rain calls on blocked beats |
-| **Fri** | WP6 · WP8 · WP9 (a/b/c) · D4 recording | Full gate, captured evidence, `git tag build-freeze` |
-| **Sat** | *Event* — 9 AM credentials · D2 fidelity pass · D2 round-trip · rehearsal · dinner | |
-| **Sun** | Two takes · five slides · three rehearsals · placeholder submitted 11:00, final 11:45 | |
-
-Critical path **WP0 → WP2 → WP3 → WP5 → WP8**, one package per day with a full day of float behind each.
+`CHAIN_ID` selects the environment: `10143` Monad testnet, `31337` local Anvil. Without it the header reads "Environment not configured" rather than guessing. `AGENT_PRIVATE_KEY` is required to submit transactions and must never be committed.
 
 ---
 
-## 6. Open risks
+## Architecture
 
-| Risk | State |
-|---|---|
-| **Faucet cooldown** — 2 h per token, four addresses, one is the principal's revoke key | **The only thing this week that can't be compressed.** Gates Tuesday. Start it first. |
-| **Eligibility** — no written source | Waived knowingly. All-or-nothing. Replace with a real source if one surfaces. |
-| **Scope creep** — five days is roomy | Structural now: finishing early and stopping is a success condition; growth needs sign-off |
-| **WP3 cross-language digest** | Mitigated — WP2 emits a fixture vector Tuesday that WP3's Foundry test asserts against, so a mismatch fails red on Wednesday rather than inside `/api/pay` on Thursday |
+```
+/compare  ─ supplier analysis, policy checks, no numeric score shown
+/approve  ─ mandate terms, the six signed approval fields, signature submission
+    │
+/api/pay ─┬─▶ off-chain sourcing checks   (lead time, spec match, completeness)
+          │
+          ├─▶ MandateRegistry.record()    ◀── ceiling · payee scope · window
+          │   on Monad, reverts           ◀── revocation · deposit cap
+          │
+          └─▶ MockRainAdapter             ◀── only if the contract did not revert
+```
 
-**Never cut, at any hour, for any reason:** `record()` reverting on-chain · cumulative `spent` as on-chain state · **live revocation** · the published `payeeScope` preimage · the pre-signed prior-session mandate · integer minor units · the `<=` at 3000 bps.
+Payee scope, amount, deposit, expiry and revocation are deliberately **absent** from the off-chain pre-checks. Pre-empting any of them would make "the contract reverted" false. Idempotency keys are per-attempt UUIDs, never derived from payment content — a content-derived key would make the revocation beat show "paid" instead of "reverted."
+
+Integer minor units throughout. `BigInt` for token math. Never a float.
+
+**Key modules:** `sourcepilot/contracts/src/MandateRegistry.sol` · `sourcepilot/lib/mandate` (EIP-712 digest, cross-language vector pinned in `__fixtures__/digest-vector.json`) · `sourcepilot/lib/score` · `sourcepilot/lib/cost` · `sourcepilot/lib/chain/registry.ts` · `sourcepilot/app/api/pay`
 
 ---
 
-## 7. Who does what
+## Project record
 
-- **Cowork window — manager.** Owns the frozen contracts, briefs, gates, dispatch log, `STATUS.md`, and boss escalations. Writes no production code.
-- **Claude Code in a terminal — build.** Executes the briefs against a real toolchain. Bootstrapped by `BUILD-HANDOFF.md` §3.
-- **Human.** Faucets, wallet, Rain credentials Saturday 9 AM, the D4 screen-recording, and the stage.
+This repository also carries the planning record: `INTERFACE-CONTRACTS.md` (frozen types and signatures), `docs/decisions/` (the rulings that override the spec), `SCOPE-NOW.md` (what shipped and what was cut), `docs/ASSIGNMENTS.md`, `STATUS.md`, and `archive/` (superseded documents, retired but kept — see `archive/INDEX.md`).
 
-Each day's gate output comes back to the manager window, gets verified there, and is logged in `ASSIGNMENTS.md` §3 — **the manager runs the check itself rather than trusting a report.** That discipline is what caught the WP0 blocker in two minutes instead of a day.
+Three demo-breaking defects were caught in that process before a line of code existed: a contract signature that couldn't verify what it claimed to, a content-derived idempotency key that would have inverted the revocation beat, and off-chain pre-checks that would have stolen the blocked beat from the contract. Where possible each fix became a type rather than a note.
