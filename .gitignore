@@ -31,3 +31,4 @@ coverage/
 # local scratch
 .uibuild/
 .claude/
+.superpowers/
