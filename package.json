@@ -5,6 +5,7 @@
     "dev": "pnpm --filter sourcepilot dev",
     "emit:digest-vector": "tsx scripts/emit-digest-vector.ts",
     "demo:all": "tsx --tsconfig sourcepilot/tsconfig.json scripts/harness.ts",
+    "deploy:monad": "tsx --tsconfig sourcepilot/tsconfig.json scripts/deploy-monad.ts",
     "verify:claims": "tsx --tsconfig sourcepilot/tsconfig.json scripts/verify-chain-claims.ts",
     "test:chain": "pnpm --filter sourcepilot test lib/chain",
     "build": "pnpm --filter sourcepilot build",
