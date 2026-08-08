@@ -55,7 +55,7 @@ describe("approval UI logic", () => {
   it("creates a new AttemptKey and preserves the returned approval nonce", () => {
     const request: PayRequest = {
       purchaseRequestId: "PR-1042", supplierId: "SUP-B", payeeRef: "rain:payee:hanzhou-apparel",
-      amountMinor: 123300, stage: "deposit", idempotencyKey: pendingKey,
+      amountMinor: 147900, stage: "deposit", idempotencyKey: pendingKey,
     };
     const followUp = buildApprovalFollowUp(request, pending, signature, () => nextKey);
     expect(followUp.idempotencyKey).toBe(nextKey);
@@ -65,7 +65,7 @@ describe("approval UI logic", () => {
   });
 
   it("refuses a reused pending AttemptKey", () => {
-    const request = { purchaseRequestId: "PR-1042", supplierId: "SUP-B", payeeRef: "rain:payee:hanzhou-apparel", amountMinor: 123300, stage: "deposit", idempotencyKey: pendingKey } as const;
+    const request = { purchaseRequestId: "PR-1042", supplierId: "SUP-B", payeeRef: "rain:payee:hanzhou-apparel", amountMinor: 147900, stage: "deposit", idempotencyKey: pendingKey } as const;
     expect(() => buildApprovalFollowUp(request, pending, signature, () => pendingKey)).toThrow(/new AttemptKey/);
   });
 
@@ -136,11 +136,16 @@ describe("approval UI logic", () => {
 
   it("pins the locked Supplier B deposit request and all six signed fields", () => {
     const page = readFileSync(new URL("../app/approve/page.tsx", import.meta.url), "utf8");
+    const testSource = readFileSync(new URL("./approval.test.ts", import.meta.url), "utf8");
+    const staleValues = [123_000 + 300, 411_000];
 
     expect(page).toContain('amount: "147900"');
     expect(page).toContain('poValue: "493000"');
     expect(page).toContain("amountMinor: 147900");
-    expect(page).not.toMatch(/123300|411000/);
+    for (const stale of staleValues) {
+      expect(page).not.toContain(String(stale));
+      expect(testSource).not.toContain(String(stale));
+    }
     expect(buildApprovalModel(pending, summary, "Local Anvil").signedFields).toHaveLength(6);
   });
 
