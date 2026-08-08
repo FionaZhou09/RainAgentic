@@ -1,0 +1,75 @@
+{
+  "schema": "sourcepilot.final-qa-evidence",
+  "version": "1.0.0",
+  "gitSha": "534959e0226775ba67962893a5f1c2bce12d3841",
+  "capturedAt": "2026-08-08T15:33:02-04:00",
+  "timezone": "America/New_York (EDT, UTC-04:00)",
+  "environment": "Monad Testnet",
+  "chainId": 10143,
+  "registryAddress": "0x9553c581d747107b2f63f9655b32153e2bfcdbf1",
+  "rainMode": "MockRainAdapter only (simulated); no live Rain card issuance, authorization, settlement, or readback",
+  "publicMonadEvidence": {
+    "deploymentTx": "0x4fba0104a66f37f6c5c398dbaf892395b50c6813954472c61c47333999234a41",
+    "deploymentExplorer": "https://testnet.monadvision.com/tx/0x4fba0104a66f37f6c5c398dbaf892395b50c6813954472c61c47333999234a41",
+    "deploymentBlock": "52019868",
+    "mandateHash": "0x741c286df430ea33920126bdfb1b4b5597421b67e56834b4f867233ffb6b731a",
+    "createTx": "0x688355e83335d003b92f5137d31bb69da815dccde398ee318e460a1654ab1688",
+    "recordTx": "0xb69095e0c11d59cda4105cfaf43aaa789da3fba927d3e9e7c4d6f3f0ceb6f098",
+    "recordBlock": "52019873",
+    "recordAmountMinor": "18000",
+    "spentMinor": "18000",
+    "remainingMinor": "166000",
+    "revokeTx": "0x48b52e7b4b75cc631e3b37f4844fb606d975801a95fc06f9f94928805c393ded",
+    "verification": "CHAIN_ID=10143 verify:claims passed across 36 records; read-only public evidence only"
+  },
+  "viewports": [
+    {"file":"compare-desktop.png","route":"/compare","state":"live static UI","classification":"live presentation of public Monad configuration; no transaction performed","viewport":{"width":1440,"height":900},"geometry":{"innerWidth":1440,"clientWidth":1440,"scrollWidth":1440,"mainWidth":1440,"sectionWidth":1008,"cardWidths":[1008,1008,1008],"gridColumns":"1008px 320px","cssZoom":"1","transform":"none"},"environmentLabel":"Monad Testnet"},
+    {"file":"compare-mobile.png","route":"/compare","state":"live static UI","classification":"live presentation of public Monad configuration; no transaction performed","viewport":{"width":390,"height":844},"geometry":{"innerWidth":390,"clientWidth":390,"scrollWidth":390,"mainWidth":390,"sectionWidth":342,"cardWidths":[342,342,342],"gridColumns":"342px","cssZoom":"1","transform":"none"},"environmentLabel":"Monad Testnet"},
+    {"file":"compare-projector.png","route":"/compare","state":"live static UI","classification":"live presentation of public Monad configuration; no transaction performed","viewport":{"width":1280,"height":720},"geometry":{"innerWidth":1280,"clientWidth":1280,"scrollWidth":1280,"mainWidth":1280,"sectionWidth":848,"cardWidths":[848,848,848],"gridColumns":"848px 320px","cssZoom":"1","transform":"none"},"environmentLabel":"Monad Testnet"},
+    {"file":"approve-pending-desktop.png","route":"/approve","state":"pending approval","classification":"live static pending UI; no transaction or Rain call","viewport":{"width":1440,"height":900},"geometry":{"innerWidth":1440,"clientWidth":1440,"scrollWidth":1440,"mainWidth":1440,"sectionWidth":1008,"gridColumns":"1008px 320px","cssZoom":"1","transform":"none"},"signedFields":["mandateHash","payeeHash","amount","poValue","stage","nonce"],"environmentLabel":"Monad Testnet"},
+    {"file":"approve-pending-mobile.png","route":"/approve","state":"pending approval","classification":"live static pending UI; no transaction or Rain call","viewport":{"width":390,"height":844},"geometry":{"innerWidth":390,"clientWidth":390,"scrollWidth":390,"mainWidth":390,"sectionWidth":358,"gridColumns":"358px","cssZoom":"1","transform":"none"},"signedFields":["mandateHash","payeeHash","amount","poValue","stage","nonce"],"mobileSubmitTargetHeight":48,"environmentLabel":"Monad Testnet"},
+    {"file":"approve-pending-projector.png","route":"/approve","state":"pending approval","classification":"live static pending UI; no transaction or Rain call","viewport":{"width":1280,"height":720},"geometry":{"innerWidth":1280,"clientWidth":1280,"scrollWidth":1280,"mainWidth":1280,"sectionWidth":848,"gridColumns":"848px 320px","cssZoom":"1","transform":"none"},"signedFields":["mandateHash","payeeHash","amount","poValue","stage","nonce"],"environmentLabel":"Monad Testnet"},
+    {"file":"approve-approved-simulated.png","route":"/approve","state":"approved","classification":"simulated same-origin intercepted display fixture; MockRainAdapter reference only; not a live API or chain response","viewport":{"width":1440,"height":900},"environmentLabel":"Monad Testnet","visibleSimulationLabel":true},
+    {"file":"approve-blocked-simulated.png","route":"/approve","state":"on-chain PayeeOutOfScope blocked","classification":"simulated same-origin intercepted display fixture; not a live API or chain response","viewport":{"width":1440,"height":900},"environmentLabel":"Monad Testnet","visibleSimulationLabel":true},
+    {"file":"blocked-network.png","route":"/approve","state":"on-chain PayeeOutOfScope blocked plus network summary","classification":"simulated same-origin intercepted display fixture; browser network observation","viewport":{"width":1440,"height":900},"environmentLabel":"Monad Testnet","visibleSimulationLabel":true}
+  ],
+  "network": {
+    "browserObservation": "POST http://127.0.0.1:3001/api/pay returned the intercepted simulated fixture; document and framework assets were same-origin",
+    "requestHosts": {"127.0.0.1:3001": "document, Next.js assets, and intercepted /api/pay only"},
+    "externalRainRequests": 0,
+    "monadTransactionSubmissions": 0,
+    "analyticsOrPaymentThirdPartyRequests": 0
+  },
+  "zeroRainCrossCheck": {
+    "browserNetworkObservation": "No external Rain request in blocked-state capture",
+    "independentHarnessAssertion": {"changedPayee":{"reason":"PayeeOutOfScope","mockRainAdapterCalls":0},"ceiling":{"reason":"ExceedsMaxTotal","mockRainAdapterCalls":0},"revoked":{"reason":"Revoked","mockRainAdapterCalls":0}}
+  },
+  "commands": [
+    {"name":"UI tests","result":"PASS","total":"24/24"},
+    {"name":"harness, claim, deployment tests","result":"PASS","total":"38/38"},
+    {"name":"full pnpm test","result":"PASS","total":"206/206 across 20 files"},
+    {"name":"tsc --noEmit","result":"PASS"},
+    {"name":"lint","result":"PASS with 0 errors and 5 warnings"},
+    {"name":"build with CHAIN_ID=10143","result":"PASS","routes":["/","/compare","/approve","/api/analyze","/api/events/stream","/api/mandate","/api/pay"]},
+    {"name":"pnpm demo:all","result":"PASS","outcomes":"18000 autonomous; 147900 pending; signed 147900; changed-payee PayeeOutOfScope; D3 ceiling; final Revoked"},
+    {"name":"CHAIN_ID=10143 pnpm verify:claims","result":"PASS","total":"36 source/evidence records"},
+    {"name":"Foundry","result":"PASS","total":"24/24"},
+    {"name":"git diff --check","result":"PASS"},
+    {"name":"branch/remote exact sync","result":"PASS","remote":"origin/codex/sourcepilot-completion","sha":"534959e0226775ba67962893a5f1c2bce12d3841"},
+    {"name":"secret/mock/domain/label/one-mandate/eight-step/zero-Rain/child cleanup audits","result":"PASS"}
+  ],
+  "fileHashesSha256": {
+    "approve-approved-simulated.png":"dca49eed3a828333d6aa89f7ee15c63cab230fd29e12f77742acb5b8fd3d0e7e",
+    "approve-blocked-simulated.png":"451bbc8a6e7ba564c58a8e369c2a55d905e8bbec706681c01e867e8f02594fb2",
+    "approve-pending-desktop.png":"9aca0e1ad26ca74cefc7ae40966d384e2b3202ac60c9df3122837f43bd238616",
+    "approve-pending-mobile.png":"498dca2d3a0687078e8d6771ef5c9e358f7e2b1629e6d3aa7b36d2782aa88040",
+    "approve-pending-projector.png":"6f2c35b850264ed9cb49502b43c4d9d630c1a9d31149f69cfeba22659ac93f94",
+    "blocked-network.png":"081f44547312d936dc476a4004161e3fbdd7285944ec3c23e2bff627a09f4809",
+    "compare-desktop.png":"da2c78fbbef2ddb2cbda04a542fb67a9b027ce484bacd172980502f2d67fcf54",
+    "compare-mobile.png":"846a59366ad4604c9235635032fd009372c1c2568fe81fa9bc9def67c9004698",
+    "compare-projector.png":"17c9e7e4232dc0f3be32beef4e0e2c2c0bf5f71e9f4a8faaac2cc447caa2fc01",
+    "demo-outcomes.txt":"030ab649ae3d716dab335b04870df5f5d1463e76f886e312fbd7a29f3fa33a9b"
+  },
+  "accessibility": {"landmarksAndHeadings":"PASS","labels":"PASS","keyboardFocus":"PASS: Tab reaches #approval-signature","contrastCredibility":"PASS by visual review","longHashWrapping":"PASS","mobileTarget":"48px submit button"},
+  "noSecretAssertion": "Evidence contains no secrets, private keys, signatures, sessionid, API keys, ignored-env contents, PAN/CVV, PII, raw headers, or private browser data."
+}

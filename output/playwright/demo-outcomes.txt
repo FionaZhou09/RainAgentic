@@ -1,0 +1,13 @@
+SourcePilot SP-12 sanitized demo outcomes
+Classification: deterministic local Anvil harness; MockRainAdapter only; no live Rain issuance, authorization, settlement, or readback.
+
+1. autonomous_sample: amountMinor=18000; outcome=autonomous; remainingMinor=166000; MockRainAdapter.calls delta=1 (simulated).
+2. escalation pending: amountMinor=147900; outcome=pending_approval; chainCalled=false; rainCalled=false.
+3. escalation signed: amountMinor=147900; outcome=approved; changed payee is not used for this approval; MockRainAdapter.calls delta=1 (simulated).
+4. changed_payee: amountMinor=147900; outcome=blocked; layer=onchain; reason=PayeeOutOfScope; MockRainAdapter.calls delta=0.
+5. D3 second sample: amountMinor=18000; outcome=autonomous; remainingMinor=100; MockRainAdapter.calls delta=1 (simulated).
+6. D3 third sample: amountMinor=18000; outcome=blocked; layer=onchain; reason=ExceedsMaxTotal; MockRainAdapter.calls delta=0.
+7. final revoked retry: amountMinor=18000; outcome=blocked; layer=onchain; reason=Revoked; MockRainAdapter.calls delta=0.
+
+Harness assertion: changed-payee, ceiling, and revoked blocked beats each observed zero MockRainAdapter calls.
+No secret material, signatures, session identifiers, private keys, raw headers, PAN/CVV, API keys, or PII is included.
