@@ -20,7 +20,7 @@
     "spentMinor": "18000",
     "remainingMinor": "166000",
     "revokeTx": "0x48b52e7b4b75cc631e3b37f4844fb606d975801a95fc06f9f94928805c393ded",
-    "verification": "CHAIN_ID=10143 verify:claims passed across 36 records; read-only public evidence only"
+    "verification": "CHAIN_ID=10143 verify:claims passed across 37 records; read-only public evidence only"
   },
   "viewports": [
     {"file":"compare-desktop.png","route":"/compare","state":"live static UI","classification":"live presentation of public Monad configuration; no transaction performed","viewport":{"width":1440,"height":900},"geometry":{"innerWidth":1440,"clientWidth":1440,"scrollWidth":1440,"mainWidth":1440,"sectionWidth":1008,"cardWidths":[1008,1008,1008],"gridColumns":"1008px 320px","cssZoom":"1","transform":"none"},"environmentLabel":"Monad Testnet"},
@@ -52,7 +52,7 @@
     {"name":"lint","result":"PASS with 0 errors and 5 warnings"},
     {"name":"build with CHAIN_ID=10143","result":"PASS","routes":["/","/compare","/approve","/api/analyze","/api/events/stream","/api/mandate","/api/pay"]},
     {"name":"pnpm demo:all","result":"PASS","outcomes":"18000 autonomous; 147900 pending; signed 147900; changed-payee PayeeOutOfScope; D3 ceiling; final Revoked"},
-    {"name":"CHAIN_ID=10143 pnpm verify:claims","result":"PASS","total":"36 source/evidence records"},
+    {"name":"CHAIN_ID=10143 pnpm verify:claims","result":"PASS","total":"37 source/evidence records"},
     {"name":"Foundry","result":"PASS","total":"24/24"},
     {"name":"git diff --check","result":"PASS"},
     {"name":"branch/remote exact sync","result":"PASS","remote":"origin/codex/sourcepilot-completion","sha":"534959e0226775ba67962893a5f1c2bce12d3841"},

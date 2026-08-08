@@ -14,7 +14,7 @@
 | Lint | PASS | 0 errors, 5 warnings. |
 | Production build | PASS | `/`, `/compare`, `/approve`, and four API routes built; SourcePilot title/metadata; no default Next/Vercel UI. |
 | Demo harness | PASS | Ordered autonomous 18000, pending 147900, signed 147900, changed-payee `PayeeOutOfScope`, D3 ceiling, final `Revoked`. |
-| Monad public claim verification | PASS | `CHAIN_ID=10143`, registry `0x9553c581d747107b2f63f9655b32153e2bfcdbf1`, 36 source/evidence records. |
+| Monad public claim verification | PASS | `CHAIN_ID=10143`, registry `0x9553c581d747107b2f63f9655b32153e2bfcdbf1`, 37 source/evidence records. |
 | Foundry | PASS | 24/24. |
 | Git/scope/audits | PASS | Remote branch equals baseline; diff check clean; exact allowlist enforced; secret/mock/domain/label/one-mandate/eight-step/zero-Rain/child audits passed. |
 | Browser QA | PASS | All nine images read; no concealed horizontal overflow, overlap, stale `123300`/`411000`, numeric score, banned claim, or second visual system. |
