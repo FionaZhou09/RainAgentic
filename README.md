@@ -75,7 +75,7 @@ Being precise here matters more than sounding impressive.
 
 | Gate | Result |
 |---|---|
-| TypeScript test suite | **207 passed** across 21 files |
+| TypeScript test suite | **208 passed** across 21 files |
 | Foundry contract tests | **24 passed**, including all ten named enforcement tests |
 | Typecheck | `tsc --noEmit`, exit 0 |
 | Production build | `/`, `/compare`, `/approve` and four API routes |
@@ -94,7 +94,7 @@ All commands run from the repository root.
 pnpm install
 
 CHAIN_ID=10143 pnpm dev    # http://localhost:3000 → /compare
-pnpm test                  # 207 tests
+pnpm test                  # 208 tests
 pnpm demo:all              # the three beats, end to end
 
 CHAIN_ID=10143 \

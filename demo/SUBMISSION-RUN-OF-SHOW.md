@@ -1,6 +1,6 @@
 # SourcePilot demo — run of show
 
-Keep this on a second screen. The submission video should be evidence-led and repeatable; do not create new payments or revoke anything while recording.
+The deck is now the primary recording surface. It contains the two product screens, three Monad evidence screens, and the sanitized Rain terminal proof in the correct order.
 
 ## T–15 minutes
 
@@ -18,44 +18,58 @@ MANDATE_REGISTRY_ADDRESS=0x9553c581d747107b2f63f9655b32153e2bfcdbf1 \
 pnpm verify:claims
 ```
 
-Continue only if the app header shows `Environment: Monad Testnet` and claim verification exits successfully.
+Continue only if the app header shows `Environment: Monad Testnet` and claim verification succeeds.
 
-## Tabs, in order
+## Recording order
 
-1. `SourcePilot-deck.pptx`, slide 1
-2. `http://localhost:3000/compare`
-3. `http://localhost:3000/approve`
-4. Sanitized Rain terminal output
-5. `https://testnet.monadvision.com/address/0x9553c581d747107b2f63f9655b32153e2bfcdbf1`
-6. `SourcePilot-deck.pptx`, slide 5
+1. Slides 1–3: title, problem, and architecture.
+2. Slide 4: supplier comparison.
+3. Slide 5: payment approval boundary.
+4. Slide 6: Monad contract and transaction list.
+5. Slide 7: Monad spend-record transaction.
+6. Slide 8: Monad revoke transaction.
+7. Slide 9: sanitized Rain sandbox result.
+8. Slides 10–11: proof summary and honest boundary.
 
-You are showing six screen states, but only four live evidence surfaces: two app pages, one terminal result, and one Monad explorer page.
+Do not leave slide show mode during the main recording. Keep the live application and explorer links ready only for Q&A.
 
-## Values to keep off-screen
+## Six evidence screens
 
-- `RAIN_API_KEY`
-- wallet private keys
-- `.env.secrets.local`
-- terminal history containing authentication headers
+### 1 — Compare
 
-## Evidence checklist
+- Hanzhou is recommended.
+- The cheapest quote fails shipping, delivery, specification, and deposit checks.
+- The selected deposit is exactly the signed 30% cap.
 
-### `/compare`
+### 2 — Approve
 
-- Rongcheng: cheapest unit price but rejected on incomplete shipping, delivery, and specification terms.
-- Hanzhou: recommended supplier.
-- Deposit: exactly 30%, matching the mandate cap.
-
-### `/approve`
-
+- Cumulative ceiling: $1,840.
 - Autonomous threshold: $200.
-- Sample payment: $180.
-- Larger deposit: requires human approval.
-- Do not submit payment during the recording.
+- Deposit cap: 30% of PO value.
+- Approval is required before payment side effects.
+- Do not submit the form while recording.
 
-### Rain terminal
+### 3 — Monad registry
 
-Show only:
+Contract: `0x9553c581d747107b2f63f9655b32153e2bfcdbf1`
+
+The list shows mandate creation, spend recording, and revocation.
+
+### 4 — Monad spend record
+
+Transaction: `0xb690…f098`
+
+Say that it is a successful public contract interaction recording spend against the mandate.
+
+### 5 — Monad revocation
+
+Transaction: `0x48b5…3ded`
+
+Say that the mandate was revoked on-chain and cannot be reused.
+
+### 6 — Rain sandbox
+
+The cropped screenshot shows:
 
 ```json
 {
@@ -68,31 +82,27 @@ Show only:
 
 Say: “This proves live authenticated read-only sandbox connectivity. It does not prove card issuance or settlement.”
 
-### MonadVision
+## Values to keep off-screen
 
-Registry:
+- `RAIN_API_KEY`
+- wallet private keys
+- `.env.secrets.local`
+- terminal history containing authentication headers
 
-```text
-0x9553c581d747107b2f63f9655b32153e2bfcdbf1
-```
+## Q&A links
 
-The contract transaction list should show:
-
-- mandate creation: `0x6883…1688`
-- spend record: `0xb690…f098`
-- revocation: `0x48b5…3ded`
-
-One list page is enough. Open an individual transaction only during Q&A.
+- Product: `https://rain-agentic-sourcepilot.vercel.app/compare`
+- Approval: `https://rain-agentic-sourcepilot.vercel.app/approve`
+- Monad registry: `https://testnet.monadvision.com/address/0x9553c581d747107b2f63f9655b32153e2bfcdbf1`
 
 ## If something breaks
 
 | Symptom | Response |
 |---|---|
-| App says “Environment not configured” | Restart with `CHAIN_ID=10143 pnpm dev`. |
-| Rain returns anything other than 200 | Use the previously captured clean result and say it was recorded from the sandbox check. Do not debug on camera. |
-| MonadVision is slow | Use the existing explorer screenshot or slide 4. |
-| App payment endpoint is unavailable | Continue the planned non-submitting walkthrough. |
-| Time is short | Keep `/approve`, Rain proof, and Monad proof; shorten the supplier comparison. |
+| Live app says “Environment not configured” | Use the deck screenshots; restart later with `CHAIN_ID=10143 pnpm dev`. |
+| Rain returns anything other than 200 | Use slide 9 and state that it is the captured authenticated sandbox result. Do not debug on camera. |
+| MonadVision is slow | Use slides 6–8. |
+| Time is short | Keep slides 4–9 and slide 11; skip most of slides 2–3 and 10. |
 
 ## Q&A answers
 
@@ -106,7 +116,7 @@ One list page is enough. Open an individual transaction only during Q&A.
 
 **Why not execute another payment in the video?**
 
-> The video separates the product walkthrough from immutable proof. The existing public transactions demonstrate the live contract behavior without changing the prepared demo state.
+> The prepared public transactions demonstrate the live contract behavior without changing the demo state or risking a failed live dependency.
 
 **What happens when a payment violates the mandate?**
 
@@ -116,11 +126,10 @@ One list page is enough. Open an individual transaction only during Q&A.
 
 > The contract cannot verify that the signed purchase-order value matches an external invoice, and supplier verification is outside this prototype.
 
-## Final pre-recording check
+## Final check
 
-- Close notifications and unrelated tabs.
-- Increase browser and terminal font size.
-- Hide bookmarks and personal account information.
-- Confirm no secrets appear on screen.
+- Use the updated 11-slide deck.
+- Hide bookmarks, notifications, and personal account information.
+- Confirm no secret values appear on screen.
+- Keep the final video under the submission limit.
 - Record two takes.
-- Keep the final video under the submission time limit.
