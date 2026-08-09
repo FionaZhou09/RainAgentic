@@ -67,7 +67,7 @@ Being precise here matters more than sounding impressive.
 
 **Not enforced, and we won't claim otherwise:** no contract can check whether that signed PO value matches the real invoice. That's the remaining seam. We'd rather name it than have you find it.
 
-**Rain is simulated.** Card issuance and settlement run through `MockRainAdapter`. There is **no live card issuance, authorization, or settlement** in this build — credentials were access-gated until the event. Simulated UI states are labeled `SIMULATED DISPLAY FIXTURE` on screen. The mock is shaped against Rain's documented field names and minor-unit conventions, and the enforcement pipeline in front of it is real: on the blocked beats, `MockRainAdapter.calls = 0`, asserted two independent ways.
+**Rain sandbox connectivity is live and authenticated.** A read-only `GET /issuing/transactions` request returned HTTP 200. The sandbox account currently has zero transactions. Card issuance, authorization, and settlement are **not** integrated in this build; payment execution uses `MockRainAdapter`. The enforcement pipeline in front of it is real: on blocked requests, `MockRainAdapter.calls = 0`, asserted two independent ways.
 
 ---
 
@@ -75,7 +75,7 @@ Being precise here matters more than sounding impressive.
 
 | Gate | Result |
 |---|---|
-| TypeScript test suite | **206 passed** across 20 files |
+| TypeScript test suite | **207 passed** across 21 files |
 | Foundry contract tests | **24 passed**, including all ten named enforcement tests |
 | Typecheck | `tsc --noEmit`, exit 0 |
 | Production build | `/`, `/compare`, `/approve` and four API routes |
@@ -94,9 +94,12 @@ All commands run from the repository root.
 pnpm install
 
 CHAIN_ID=10143 pnpm dev    # http://localhost:3000 → /compare
-pnpm test                  # 206 tests
+pnpm test                  # 207 tests
 pnpm demo:all              # the three beats, end to end
-pnpm verify:claims         # re-checks every on-chain claim above against Monad
+
+CHAIN_ID=10143 \
+MANDATE_REGISTRY_ADDRESS=0x9553c581d747107b2f63f9655b32153e2bfcdbf1 \
+pnpm verify:claims         # re-check the published Monad evidence
 
 forge test --root sourcepilot/contracts    # 24 contract tests
 ```
@@ -127,8 +130,13 @@ Integer minor units throughout. `BigInt` for token math. Never a float.
 
 ---
 
-## Project record
+## Repository structure
 
-This repository also carries the planning record: `INTERFACE-CONTRACTS.md` (frozen types and signatures), `docs/decisions/` (the rulings that override the spec), `SCOPE-NOW.md` (what shipped and what was cut), `docs/ASSIGNMENTS.md`, `STATUS.md`, and `archive/` (superseded documents, retired but kept — see `archive/INDEX.md`).
+```text
+demo/         submission deck, PDF, recording script, and run-of-show
+output/       verified Monad deployment data and browser QA evidence
+scripts/      deployment, signing, demo, and claim-verification tools
+sourcepilot/  Next.js application, policy engine, Rain adapter, and contracts
+```
 
-Three demo-breaking defects were caught in that process before a line of code existed: a contract signature that couldn't verify what it claimed to, a content-derived idempotency key that would have inverted the revocation beat, and off-chain pre-checks that would have stolen the blocked beat from the contract. Where possible each fix became a type rather than a note.
+The frozen cross-layer types and contract signatures are documented in [`INTERFACE-CONTRACTS.md`](INTERFACE-CONTRACTS.md). Recording instructions are in [`demo/SUBMISSION-VIDEO-SCRIPT.md`](demo/SUBMISSION-VIDEO-SCRIPT.md).

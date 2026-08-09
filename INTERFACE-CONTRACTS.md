@@ -1,6 +1,6 @@
 # Interface Contracts — FROZEN v1.0
 
-**Supersedes** `EXECUTION-PLAN.md` §5 and `SourcePilot-PRD-v2.md` §7 and §9.
+**Canonical reference** for the shipped cross-layer types, Solidity surface, and payment-pipeline ordering.
 **Amended for** D0, D1, D3, D4, D5, D6, D7. **Status:** frozen pending boss eyeball; no parallel work starts until then.
 
 **Change control:** no agent may alter a signature in this file. A package that believes a signature is wrong stops and escalates to me. Types live in `sourcepilot/lib/contracts/` and are imported everywhere — nothing is redeclared locally.
@@ -290,7 +290,7 @@ export interface DigestVector {
 
 ```solidity
 // contracts/src/MandateRegistry.sol — the normative Solidity surface.
-// This block supersedes SourcePilot-PRD-v2.md §7. PRD to be corrected once WP3 lands (D0).
+// Canonical Solidity interface for the shipped registry.
 interface IMandateRegistry {
     /// D0: ALL TWELVE SIGNED FIELDS, in EIP-712 order. The digest is RECOMPUTED, never accepted.
     struct MandateInput {

@@ -1,20 +1,11 @@
 /**
  * ============================================================================
- * FROZEN DECLARATION SURFACE WITH VIEM IMPLEMENTATION BELOW.
+ * CANONICAL DECLARATION SURFACE WITH VIEM IMPLEMENTATION BELOW.
  * ============================================================================
  *
- * This file exists on Tuesday because WP2 and WP4 import `Stage`, `RevertReason`,
- * and `APPROVAL_ONCHAIN_VERIFY` from it, while WP5 — which owns the file — does not
- * run until Thursday. Manager ruling: declarations land now, WP5 fills in the viem
- * client Thursday **without altering a single declaration below**.
- *
- * This is a sequencing fix, not a contract change. Every type, constant, and
- * signature here is transcribed verbatim from `INTERFACE-CONTRACTS.md` §5 (frozen).
+ * Every type, constant, and signature here matches `INTERFACE-CONTRACTS.md` §5.
  * No signature in §5 may differ from what is written here. If you believe one is
  * wrong: stop and report it. Do not edit it, and do not work around it.
- *
- * SP-01 adds the viem-backed factory below the declarations. Do not redeclare
- * these types locally anywhere else.
  *
  * D4: viem only. wagmi is NOT a dependency of this or any other module.
  */
@@ -26,7 +17,7 @@ import {
   type PublicClient,
   type WalletClient,
 } from "viem";
-import type { Address, Bytes32, Hex } from "@/lib/contracts/money";
+import type { Bytes32, Hex } from "@/lib/contracts/money";
 import type { ProcurementMandate } from "@/lib/mandate/types";
 import { hashMandate } from "@/lib/mandate";
 import type { ChainEnvironment } from "./config";

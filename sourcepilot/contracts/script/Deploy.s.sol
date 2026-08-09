@@ -33,7 +33,7 @@ contract DeployMandateRegistry is Script {
 
         console.log("MandateRegistry deployed at:", address(registry));
         console.log("chainId:", block.chainid);
-        console.log("Record this address and its explorer link in STATUS.md.");
+        console.log("Record this address and its explorer link in output/monad/deployment.json.");
         console.log("The live mandate MUST be re-signed against this address.");
     }
 }

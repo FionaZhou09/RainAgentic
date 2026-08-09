@@ -27,8 +27,10 @@ sourcepilot/drizzle/*.db
 .DS_Store
 *.log
 coverage/
+*.inspect.ndjson
 
 # local scratch
 .uibuild/
 .claude/
 .superpowers/
+.cleanup-backup/

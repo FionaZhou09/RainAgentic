@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cents, bps, fmtUSD } from "@/lib/contracts/money";
+import { bps, fmtUSD } from "@/lib/contracts/money";
 import { computeLandedCost, missingRequiredFields } from "./index";
 import { ASSUMPTIONS, QUOTE_A, QUOTE_B, QUOTE_C } from "@/lib/fixtures/pr-1042";
 

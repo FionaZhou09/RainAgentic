@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * The normative Solidity surface. Transcribed from INTERFACE-CONTRACTS.md §5 (frozen).
- * This block SUPERSEDES SourcePilot-PRD-v2.md §7.
+ * This is the canonical Solidity interface for the shipped registry.
  *
  * D0: `create` has NO mandateHash parameter. The digest is RECOMPUTED on-chain from all
  * twelve signed fields and RETURNED. Accepting a caller-supplied digest would let a server
