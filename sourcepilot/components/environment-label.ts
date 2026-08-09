@@ -11,3 +11,9 @@ export function environmentLabel(chainId: string | number | undefined): Environm
   if (normalized === "10143") return "Monad Testnet";
   return `Unsupported chain (${normalized})`;
 }
+
+export function publicEnvironmentLabel(
+  env: Readonly<Record<string, string | undefined>>,
+): EnvironmentLabel {
+  return environmentLabel(env.NEXT_PUBLIC_CHAIN_ID ?? env.CHAIN_ID ?? "10143");
+}

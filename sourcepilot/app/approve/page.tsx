@@ -1,5 +1,5 @@
 import { ApprovalClient } from "@/components/approval-client";
-import { environmentLabel } from "@/components/environment-label";
+import { publicEnvironmentLabel } from "@/components/environment-label";
 import type { PayResponse } from "@/lib/contracts/api";
 import type { Bytes32 } from "@/lib/contracts/money";
 import { DEMO_COPY } from "@/lib/contracts/copy";
@@ -36,5 +36,5 @@ export default function ApprovePage() {
     amountMinor: 147900,
     stage: "deposit",
     idempotencyKey: newAttemptKey(),
-  }} mandate={mandate} environment={environmentLabel(process.env.CHAIN_ID)} />;
+  }} mandate={mandate} environment={publicEnvironmentLabel(process.env)} />;
 }

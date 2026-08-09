@@ -9,7 +9,7 @@ import {
   buildApprovalModel,
   type ApprovalMandateSummary,
 } from "@/components/approval-model";
-import { environmentLabel } from "@/components/environment-label";
+import { environmentLabel, publicEnvironmentLabel } from "@/components/environment-label";
 import { DEMO_COPY } from "@/lib/contracts/copy";
 
 const hash = (character: string) => `0x${character.repeat(64)}` as Bytes32;
@@ -127,6 +127,11 @@ describe("approval UI logic", () => {
     expect(environmentLabel("10143")).toBe("Monad Testnet");
     expect(environmentLabel(undefined)).toBe("Environment not configured");
     expect(environmentLabel("1")).toBe("Unsupported chain (1)");
+  });
+
+  it("defaults the public submission UI to Monad Testnet when Vercel omits CHAIN_ID", () => {
+    expect(publicEnvironmentLabel({})).toBe("Monad Testnet");
+    expect(publicEnvironmentLabel({ NEXT_PUBLIC_CHAIN_ID: "31337" })).toBe("Local Anvil");
   });
 
   it("exposes a keyboard-operable approval boundary", () => {
