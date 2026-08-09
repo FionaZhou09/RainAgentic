@@ -16,11 +16,11 @@
 | 5 | D5 | `poValueMinor` caller-asserted, emitted, bound in `PaymentApproval`. `APPROVAL_ONCHAIN_VERIFY` flag reserved for the Saturday-evening 45-min upgrade. Language discipline pinned as a code constant. |
 | 6 | D6 | `idempotencyKey` typed as a branded `AttemptKey`, minted only by `newAttemptKey()`. Three ratified wordings pinned in `DEMO_COPY`. |
 | 7 | D7 | §5.7 pipeline is normative; PRD §9 ordering is dead. |
-| 8 | Boss-approved amendment, 2026-08-05 | Removed `ConstraintPreview` and `previewConstraints`. `simulateRecord` is the only constraint preview, so local code cannot drift from Solidity enforcement. |
-| 9 | A2, boss-approved 2026-08-05 | Canonical mandate domain, hash, sign, and recovery helpers now require explicit `chainId` and `verifyingContract`. No implicit Monad default; RegistryClient uses the same helper. |
-| 10 | A3, boss-approved 2026-08-05 | Approval helpers use the same explicit domain; `SerializedApproval` canonically carries all six fields; `PayRequest.approvalNonce` propagates the signed nonce unchanged. |
-| 11 | A4 Option B, boss-approved 2026-08-05 | The purchase flow and D3 ceiling proof use one mandate. Revocation is the final irreversible closer, exposed separately as `runRevocationCloser()`. |
-| 12 | A5, boss-approved 2026-08-05 | Canonical mandate/payment responses expose environment-neutral `transactionHash`; presentation labels it `localTxHash` only on 31337 and `monadTxHash` only on 10143. |
+| 8 | Approved amendment | Removed `ConstraintPreview` and `previewConstraints`. `simulateRecord` is the only constraint preview, so local code cannot drift from Solidity enforcement. |
+| 9 | A2, approved | Canonical mandate domain, hash, sign, and recovery helpers now require explicit `chainId` and `verifyingContract`. No implicit Monad default; RegistryClient uses the same helper. |
+| 10 | A3, approved | Approval helpers use the same explicit domain; `SerializedApproval` canonically carries all six fields; `PayRequest.approvalNonce` propagates the signed nonce unchanged. |
+| 11 | A4 Option B, approved | The purchase flow and D3 ceiling proof use one mandate. Revocation is the final irreversible closer, exposed separately as `runRevocationCloser()`. |
+| 12 | A5, approved | Canonical mandate/payment responses expose environment-neutral `transactionHash`; presentation labels it `localTxHash` only on 31337 and `monadTxHash` only on 10143. |
 
 ---
 

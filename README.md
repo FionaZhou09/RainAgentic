@@ -7,6 +7,8 @@ Rain × Monad hackathon, NYC.
 **Live demo:** https://rain-agentic-sourcepilot.vercel.app
 **Registry contract:** [`0x9553c581d747107b2f63f9655b32153e2bfcdbf1`](https://testnet.monadvision.com/address/0x9553c581d747107b2f63f9655b32153e2bfcdbf1) · Monad Testnet, chain 10143
 
+**Submission provenance:** the hackathon submission build, Monad deployment, final UI, verification evidence, presentation, and recording materials were completed on August 8–9, 2026. Git history is preserved rather than backdated; earlier preparation commits remain visible where applicable.
+
 ---
 
 ## The problem

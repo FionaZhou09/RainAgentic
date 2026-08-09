@@ -107,8 +107,8 @@ export interface RegistryClient {
  * ten named tests, this stays false and we say the D5 sentence. (b) is an addition to a
  * working contract, never a repair of a broken one.
  *
- * FLIPPED TO TRUE — Wed 2026-08-05, WP3 gate green on all ten named tests
- * (`forge test` 24 passed / 0 failed). R4 (b) shipped: `record` ecrecovers the
+ * ENABLED after the WP3 gate passed all ten named tests (`forge test` 24 passed /
+ * 0 failed). R4 (b) shipped: `record` ecrecovers the
  * PaymentApproval digest for `stage == 1` and requires signer == principal, else
  * BadApproval(). The tenth test — a valid approval over a DIFFERENT poValueMinor than the
  * one passed to record — is red-first and green, so (b) buys what it claims to buy.
