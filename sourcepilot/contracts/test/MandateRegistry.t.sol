@@ -211,6 +211,13 @@ contract MandateRegistryTest is Test {
         registry.create(_vectorMandate(), _vectorSignature());
     }
 
+    function test_remaining_onUnknownMandate_revertsUnknownMandate() public {
+        bytes32 unknownMandate = keccak256("unknown-mandate");
+
+        vm.expectRevert(IMandateRegistry.UnknownMandate.selector);
+        registry.remaining(unknownMandate);
+    }
+
     // ------------------------------------ 4. record's five conditions, each alone
 
     function test_record_revertsRevoked() public {
